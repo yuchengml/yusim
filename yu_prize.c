@@ -1,15 +1,11 @@
 #include "yu_prize.h"
 
-unsigned long totalBlkReq = 0;
-unsigned long evictCount = 0;
-unsigned long dirtyCount = 0;
-unsigned long ssdBlkReq = 0;
+static METABLOCK *APN = NULL; //SSD metadata block
+static METABLOCK *CPN = NULL; //HDD metadata block
 
-METABLOCK *APN = NULL; //SSD metadata block
-METABLOCK *CPN = NULL; //HDD metadata block
+static PCSTAT pcst = {0,0,0,0,0,0,0,0,0};
 
-double basePrize=0;
-double alpha=0.7;
+static double basePrize=0;
 
 void metaTablePrint() {
 	METABLOCK *search;
@@ -34,7 +30,7 @@ void metaTablePrint() {
 
 double getPrize(unsigned int readCnt, unsigned int writeCnt, unsigned int seqLen) {
 	
-	return (alpha*(((double)readCnt+1)/((double)writeCnt*(double)seqLen+1))+(1-alpha)*basePrize);
+	return (ALPHA*(((double)readCnt+1)/((double)writeCnt*(double)seqLen+1))+(1-ALPHA)*basePrize);
 
 }
 
@@ -153,8 +149,10 @@ int metaTableConvert(METABLOCK **oriTable, METABLOCK **objTable, METABLOCK *meta
 void prizeCaching(REQ *tmp) {
 	//PC演算法
 	int flag = 0;
-	if (tmp->reqFlag == DISKSIM_READ)
+	if (tmp->reqFlag == DISKSIM_READ) {
 		flag = BLOCK_FLAG_CLEAN;
+		pcst.UserRReq++;
+	}
 	else
 		flag = BLOCK_FLAG_DIRTY;
 	
@@ -164,6 +162,7 @@ void prizeCaching(REQ *tmp) {
 	search_CPN = metadataSearch(CPN, tmp->blkno);
 	//(2)若為APN，則更新APN並發出SSDsim request
 	if (search_APN != NULL) {
+		pcst.hitCount++;
 		//(3a)更新metadata(prize)
 		metaTableUpdate(search_APN, tmp);
 		//Read,Write SSDsim
@@ -172,9 +171,11 @@ void prizeCaching(REQ *tmp) {
 		copyReq(tmp, r);
 		r->blkno = ssdBlk2simSector(search_APN->ssd_blkno);
 		sendRequest(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1, r);
+		pcst.totalUserReq++;
 		free(r);
 	}
 	else {
+		pcst.missCount++;
 		//(2)若為CPN，則更新CPN並考慮轉至APN
 		if (search_CPN != NULL) {
 			//(3b)更新metadata(prize)
@@ -202,10 +203,12 @@ void prizeCaching(REQ *tmp) {
 					copyReq(tmp, r);
 					//Read HDDsim
 					sendRequest(KEY_MSQ_DISKSIM_2, MSG_TYPE_DISKSIM_2, tmp);
+					pcst.totalUserReq++;
 					//Write SSDsim
 					r->reqFlag = DISKSIM_WRITE;
 					r->blkno = ssdBlk2simSector(search_CPN->ssd_blkno);
 					sendRequest(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1, r);
+					pcst.totalSysReq++;
 					free(r);
 				}
 				else {//如果是Write, 則Write SSDsim
@@ -214,6 +217,7 @@ void prizeCaching(REQ *tmp) {
 					copyReq(tmp, r);
 					r->blkno = ssdBlk2simSector(search_CPN->ssd_blkno);
 					sendRequest(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1, r);
+					pcst.totalUserReq++;
 					free(r);
 				}
 			}
@@ -244,12 +248,14 @@ void prizeCaching(REQ *tmp) {
 						r2->blkno = evict->hdd_blkno;
 						r2->reqFlag = DISKSIM_WRITE;
 						sendRequest(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1, r1);
+						pcst.totalSysReq++;
 						sendRequest(KEY_MSQ_DISKSIM_2, MSG_TYPE_DISKSIM_2, r2);
+						pcst.totalSysReq++;
 						free(r1);
 						free(r2);
-						dirtyCount++;
+						pcst.dirtyCount++;
 					}
-					evictCount++;
+					pcst.evictCount++;
 					
 					if (insertCACHE(&search_CPN->ssd_blkno, &search_CPN->hdd_blkno, flag) != -1) {
 						//printf("[PRIZE]CACHE  METABLOCK ssd_blkno =%8lu hdd_blkno =%8lu readCnt =%6u writeCnt =%6u seqLen =%3u prize =%3lf\n", search_CPN->ssd_blkno, search_CPN->hdd_blkno, search_CPN->readCnt, search_CPN->writeCnt, search_CPN->seqLen, search_CPN->prize);
@@ -263,10 +269,12 @@ void prizeCaching(REQ *tmp) {
 							copyReq(tmp, r);
 							//Read HDDsim
 							sendRequest(KEY_MSQ_DISKSIM_2, MSG_TYPE_DISKSIM_2, tmp);
+							pcst.totalUserReq++;
 							//Write SSDsim
 							r->reqFlag = DISKSIM_WRITE;
 							r->blkno = ssdBlk2simSector(search_CPN->ssd_blkno);
 							sendRequest(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1, r);
+							pcst.totalSysReq++;
 							free(r);
 						}
 						else {//如果是Write, 則Write SSDsim
@@ -275,21 +283,24 @@ void prizeCaching(REQ *tmp) {
 							copyReq(tmp, r);
 							r->blkno = ssdBlk2simSector(search_CPN->ssd_blkno);
 							sendRequest(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1, r);
+							pcst.totalUserReq++;
 							free(r);
 						}
 					}
 					else
-						PrintError(-1, "[PRIZE]Caching error");
+						PrintError(-1, "[PRIZE]After eviction, caching error!");
 				}
 				else {
 					//Read,Write HDDsim
 					sendRequest(KEY_MSQ_DISKSIM_2, MSG_TYPE_DISKSIM_2, tmp);
+					pcst.totalUserReq++;
 				}
 			}
 		}
 		else {
 			//Read,Write HDDsim
 			sendRequest(KEY_MSQ_DISKSIM_2, MSG_TYPE_DISKSIM_2, tmp);
+			pcst.totalUserReq++;
 		}
 	}
 	//printCACHEByLRU();
@@ -310,15 +321,16 @@ void sendRequest(key_t key, long int msgtype, REQ *r) {
 	if(sendRequestByMSQ(key, r, msgtype) == -1)
         PrintError(-1, "A request not sent to MSQ in sendRequestByMSQ() return:");
 
-    totalBlkReq++;
+    pcst.totalBlkReq++;
     if (key == KEY_MSQ_DISKSIM_1)
-	    ssdBlkReq++;
+	    pcst.ssdBlkReq++;
 }
 
 void pcStatistic() {
-	printf(COLOR_BB"[PRIZE] Total Block Requests:        %lu\n"COLOR_N, totalBlkReq);
-	printf(COLOR_BB"[PRIZE] Total Block Requests for SSD:%lu\n"COLOR_N, ssdBlkReq);
-	printf(COLOR_BB"[PRIZE] Count of Eviction:           %lu\n"COLOR_N, evictCount);
-	printf(COLOR_BB"[PRIZE] Count of Dirty:              %lu\n"COLOR_N, dirtyCount);
+	printf(COLOR_BB"[PRIZE] Total Block Requests(SSD/HDD):%lu(%lu/%lu)\n"COLOR_N, pcst.totalBlkReq, pcst.ssdBlkReq, pcst.totalBlkReq-pcst.ssdBlkReq);
+	printf(COLOR_BB"[PRIZE] Total User Requests(R/W):     %lu(%lu/%lu)\n"COLOR_N, pcst.totalUserReq, pcst.UserRReq, pcst.totalUserReq-pcst.UserRReq);
+	printf(COLOR_BB"[PRIZE] Total System Requests:        %lu\n"COLOR_N, pcst.totalSysReq);
+	printf(COLOR_BB"[PRIZE] Count of Eviction(Dirty):     %lu(%lu)\n"COLOR_N, pcst.evictCount, pcst.dirtyCount);
+	printf(COLOR_BB"[PRIZE] Hit rate(Hit/Miss):           %lf(%lu/%lu)\n"COLOR_N, (double)pcst.hitCount/(double)(pcst.hitCount+pcst.missCount), pcst.hitCount, pcst.missCount);
 	
 }

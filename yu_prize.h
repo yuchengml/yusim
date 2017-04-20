@@ -8,7 +8,7 @@
 #include "yu_ipc.h"
 #include "yu_cache.h"
 
-	// Record program counter
+	//Record program counter
 	typedef struct metaBlock {
 	    unsigned long ssd_blkno; //以SSD的Block為單位(注意!!有別於DISKSIM的Block大小512bytes)
 	    unsigned long hdd_blkno; //以SSD的Block為單位(注意!!有別於DISKSIM的Block大小512bytes)
@@ -19,10 +19,23 @@
 	    struct metaBlock *next;
 	} METABLOCK;
 
+	//Record prize caching statistic
+	typedef struct pcStat {
+		unsigned long totalBlkReq;
+		unsigned long ssdBlkReq;
+		unsigned long totalUserReq;
+		unsigned long UserRReq;
+		unsigned long totalSysReq;
+		unsigned long evictCount;
+		unsigned long dirtyCount;
+		unsigned long hitCount;
+		unsigned long missCount;
+	} PCSTAT;
+	
+
 	double getPrize(unsigned int readCnt, unsigned int writeCnt, unsigned int seqLen);
 	
 	void metaTablePrint();
-	//void CPNRecord(METABLOCK *metaTable, REQ *tmp);
 	void metaTableUpdate(METABLOCK *metablk, REQ *tmp);
 	void metaTableRecord(METABLOCK **metaTable, REQ *tmp);
 	METABLOCK *metadataSearch(METABLOCK *metaTable, unsigned long blkno);

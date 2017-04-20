@@ -70,6 +70,7 @@ void rmMSQ() {
 }
 
 void caching() {
+    creditScheduler(userq);
     while (userq[0].tail != NULL) {
         prizeCaching(&userq[0].tail->r); //PRIZE.C
         evictQUE(&userq[0], userq[0].tail);
@@ -109,11 +110,11 @@ int main(int argc, char *argv[]) {
         //判斷時間間隔，用於策略的動態調整
         if (tmp->arrivalTime < timeout) {
             /*USER IDENTIFICATION*/
-            insertQUE(tmp, &userq[0]);
+            insertQUE(tmp, &userq[tmp->userno-1]);
         }
         else {
             //printf(COLOR_RB"Time to %lf\n"COLOR_N, timeout);
-            //printQUE(&userq[0]);
+            //printQUE(&userq[tmp->userno-1]);
             /*CACHING ALGORITHM*/
             caching();
             //metaTablePrint();
@@ -125,7 +126,7 @@ int main(int argc, char *argv[]) {
             PAUSE
 
             /*USER IDENTIFICATION*/
-            insertQUE(tmp, &userq[0]);
+            insertQUE(tmp, &userq[tmp->userno-1]);
 
             /*NEXT TIME PERIOD*/
             //The N-th time period = (int)(tmp->arrivalTime/TIME_PERIOD + 1);N=1~n
@@ -135,7 +136,7 @@ int main(int argc, char *argv[]) {
     }
 
     //printf(COLOR_RB"Time to %lf\n"COLOR_N, timeout);
-    //printQUE(&userq[0]);
+    //printQUE(&userq[tmp->userno-1]);
     /*THE LAST TIME PERIOD*/
     /*CACHING ALGORITHM*/
     caching();

@@ -10,6 +10,7 @@
 #include "yu_trace.h"
 #include "yu_syssim.h"
 #include "yu_ipc.h"
+#include "yu_credit.h"
 
 /*Simulator*/
 void initDisksim();

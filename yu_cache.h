@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "yu_parameter.h"
+
 	//SSD cache
 	typedef struct SSD_cache {
 		struct SSD_cache *pre;

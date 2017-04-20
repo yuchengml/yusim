@@ -22,7 +22,11 @@
 	 *
 	 */
 	typedef	double SysTime;		/* system time in seconds.usec */
-
+	struct Stat {
+		SysTime sysResponse;
+		unsigned long pendIORequest;
+		unsigned long servedIORequest;
+	} st;
 
 	//structure:<pre><->r<->r<-><next>
 	typedef struct intq_buf_req{

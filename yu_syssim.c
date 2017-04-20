@@ -3,10 +3,6 @@
 static SysTime now = 0;     /* current time *//*本程式將累積此值作為系統整體的response time*/
 static SysTime next_event = -1; /* next event */
 static int completed = 0;   /* requests completed */ // >0:reqs待處理 0:reqs完成(初始)
-//static Stat st;
-//Modify response time
-static SysTime /*lastnow = 0, offset = 0, */sysResponse = 0;
-
 static IntqBufReq *IBRhead = NULL;
 static int IntqBufSize = 0;
 
@@ -59,36 +55,20 @@ void syssim_deschedule_callback(double t, void *ctx) {
 void ssdsim_report_completion(SysTime t, struct disksim_request *r, void *ctx) {
 	completed--;
     now = t;
-    sysResponse += (t-r->start);
-    //printf("[SSDSIM]sysResponse1 = %lf, start = %lf, *responseTime = %lf, blkno = %lu\n", t, r->start, t-r->start, r->blkno);
-    /*
-    if (lastnow <= offset) {
-        printf("[SSDSIM]sysResponse1 = %lf, start = %lf, *responseTime = %lf, blkno = %lu\n", t, r->start, t-r->start, r->blkno);
-        sysResponse = t;
-    }
-    else {
-        printf("[SSDSIM]sysResponse2 = %lf, start = %lf, *responseTime = %lf, blkno = %lu\n", lastnow+t-offset, r->start, lastnow+t-offset-r->start, r->blkno);
-        sysResponse = lastnow+t-offset;
-    }
-	*/
+    st.sysResponse += (t-r->start);
+    //Statistic
+    st.servedIORequest++;
+    //printf("[SSDSIM]sysResponse = %lf, start = %lf, *responseTime = %lf, blkno = %lu\n", st.sysResponse, r->start, t-r->start, r->blkno);
     //printf("Now = %lf\n", now);
 }
 
 void hddsim_report_completion(SysTime t, struct disksim_request *r, void *ctx) {
     completed--;
     now = t;
-    sysResponse += (t-r->start);
-    //printf("[HDDSIM]sysResponse1 = %lf, start = %lf, *responseTime = %lf, blkno = %lu\n", t, r->start, t-r->start, r->blkno);
-    /*
-    if (lastnow <= offset) {
-        printf("[HDDSIM]sysResponse1 = %lf, start = %lf, *responseTime = %lf, blkno = %lu\n", t, r->start, t-r->start, r->blkno);
-        sysResponse = t;
-    }
-    else {
-        printf("[HDDSIM]sysResponse2 = %lf, start = %lf, *responseTime = %lf, blkno = %lu\n", lastnow+t-offset, r->start, lastnow+t-offset-r->start, r->blkno);
-        sysResponse = lastnow+t-offset;
-    }
-    */
+    st.sysResponse += (t-r->start);
+    //Statistic
+    st.servedIORequest++;
+    printf("[HDDSIM]sysResponse = %lf, start = %lf, *responseTime = %lf, blkno = %lu\n", st.sysResponse, r->start, t-r->start, r->blkno);
     //printf("Now = %lf\n", now);
 }
 
@@ -98,6 +78,10 @@ void exec_SSDsim(char *name, const char *parm_file, const char *output_file) {
     struct disksim_interface *disksim;
     struct stat buf;
     IntqBufReq *pendReq;
+
+    st.sysResponse = 0;
+    st.pendIORequest = 0;
+    st.servedIORequest = 0;
 
     if (stat(parm_file, &buf) < 0)
         panic(parm_file);
@@ -124,11 +108,12 @@ void exec_SSDsim(char *name, const char *parm_file, const char *output_file) {
 		if (rp->reqFlag == MSG_REQUEST_CONTROL_FLAG_FINISH) {
 			REQ *ctrl;
     		ctrl = calloc(1, sizeof(REQ));
-    		ctrl->responseTime = sysResponse;
+    		ctrl->responseTime = st.sysResponse;
     		if(sendRequestByMSQ(KEY_MSQ_DISKSIM_1, ctrl, MSG_TYPE_DISKSIM_1_SERVED) == -1)
     		    PrintError(KEY_MSQ_DISKSIM_1, "A control request not sent to MSQ in sendRequestByMSQ() return:");
     		
     		disksim_interface_shutdown(disksim, now);
+            printf(COLOR_YB"[SSDSIM]SYSResponseTime:%lf, Pending IO Requests:%lu, Served IO Requests:%lu\n"COLOR_N, st.sysResponse, st.pendIORequest, st.servedIORequest);
     		PrintSomething("<<<<<[SSDSIM] Shutdown!");
     		exit(0);
 		}
@@ -143,24 +128,11 @@ void exec_SSDsim(char *name, const char *parm_file, const char *output_file) {
 
                 if (completed != 0) {
                     PrintError(completed, "[SSDSIM]internal error. Some events not completed:");
-                    //fprintf(stderr, "[SSDSIM]internal error. Last event not completed \n");
                     exit(1);
                 }
             }
             //Delete pending requests by de-buffering
             DeIntqBuffering();
-            //completed = -1;
-            //Modify response time
-            //printf("LASTNOW:%lf  OFFSET:%lf\n", lastnow, offset);
-            /*
-            if (lastnow <= offset) {
-                lastnow = now;
-            }
-            else {
-                lastnow = lastnow + (now - offset);
-            }
-            offset = 0;
-            */
     	}
     	else {
             pendReq = calloc(1, sizeof(IntqBufReq));
@@ -169,11 +141,6 @@ void exec_SSDsim(char *name, const char *parm_file, const char *output_file) {
     		else if (rp->reqFlag == 0)
     			pendReq->req.flags = DISKSIM_WRITE;
 
-            //Modify response time
-            /*
-            if (lastnow != 0 && offset == 0)
-                offset = rp->arrivalTime;
-            */
 			pendReq->req.start = rp->arrivalTime;
 			pendReq->req.devno = rp->devno;
 			/*
@@ -195,13 +162,10 @@ void exec_SSDsim(char *name, const char *parm_file, const char *output_file) {
 			//
             //Record pending requests by buffering
             IntqBuffering(pendReq);
-			/*
-			if (now < pendReq->req.start)
-				now = pendReq->req.start;
-			*/
+            //Statistic
+            st.pendIORequest++;
+
 		    completed++;
-		    //為何傳入now作為系統時間,而非request的arrival time 是因為取得request發出-完成之response time
-		    //disksim_interface_request_arrive(disksim, now, &pendReq->req);
             disksim_interface_request_arrive(disksim, pendReq->req.start, &pendReq->req);
     	}
     }
@@ -213,6 +177,10 @@ void exec_HDDsim(char *name, const char *parm_file, const char *output_file) {
     struct disksim_interface *disksim;
     struct stat buf;
     IntqBufReq *pendReq;
+
+    st.sysResponse = 0;
+    st.pendIORequest = 0;
+    st.servedIORequest = 0;
 
     if (stat(parm_file, &buf) < 0)
         panic(parm_file);
@@ -238,11 +206,12 @@ void exec_HDDsim(char *name, const char *parm_file, const char *output_file) {
 		if (rp->reqFlag == MSG_REQUEST_CONTROL_FLAG_FINISH) {
 			REQ *ctrl;
     		ctrl = calloc(1, sizeof(REQ));
-    		ctrl->responseTime = sysResponse;
+    		ctrl->responseTime = st.sysResponse;
     		if(sendRequestByMSQ(KEY_MSQ_DISKSIM_2, ctrl, MSG_TYPE_DISKSIM_2_SERVED) == -1)
     		    PrintError(KEY_MSQ_DISKSIM_2, "A control request not sent to MSQ in sendRequestByMSQ() return:");
     		
     		disksim_interface_shutdown(disksim, now);
+            printf(COLOR_YB"[HDDSIM]SYSResponseTime:%lf, Pending IO Requests:%lu, Served IO Requests:%lu\n"COLOR_N, st.sysResponse, st.pendIORequest, st.servedIORequest);
     		PrintSomething("<<<<<[HDDSIM] Shutdown!");
     		exit(0);
 		}
@@ -257,24 +226,11 @@ void exec_HDDsim(char *name, const char *parm_file, const char *output_file) {
 
                 if (completed != 0) {
                     PrintError(completed, "[HDDSIM]internal error. Some events not completed:");
-                    //fprintf(stderr, "[HDDSIM]internal error. Last event not completed \n");
                     exit(1);
                 }
             }
             //Delete pending requests by de-buffering
             DeIntqBuffering();
-            //completed = -1;
-            //Modify response time
-            //printf("LASTNOW:%lf  OFFSET:%lf\n", lastnow, offset);
-            /*
-            if (lastnow <= offset) {
-                lastnow = now;
-            }
-            else {
-                lastnow = lastnow + (now - offset);
-            }
-            offset = 0;
-            */
     	}
     	else {
             pendReq = calloc(1, sizeof(IntqBufReq));
@@ -282,12 +238,6 @@ void exec_HDDsim(char *name, const char *parm_file, const char *output_file) {
     			pendReq->req.flags = DISKSIM_READ;
     		else if (rp->reqFlag == 0)
     			pendReq->req.flags = DISKSIM_WRITE;
-
-            //Modify response time
-            /*
-            if (lastnow != 0 && offset == 0)
-                offset = rp->arrivalTime;
-            */
 
 			pendReq->req.start = rp->arrivalTime;
 			pendReq->req.devno = rp->devno;
@@ -310,15 +260,11 @@ void exec_HDDsim(char *name, const char *parm_file, const char *output_file) {
 			//
             //Record pending requests by buffering
             IntqBuffering(pendReq);
-			/*
-			if (now < pendReq->req.start)
-				now = pendReq->req.start;
-			*/
+            //Statistic
+            st.pendIORequest++;
+
 		    completed++;
-		    //為何傳入now作為系統時間,而非request的arrival time 是因為取得request發出-完成之response time
-		    //disksim_interface_request_arrive(disksim, now, &pendReq->req);
             disksim_interface_request_arrive(disksim, pendReq->req.start, &pendReq->req);
-            
     	}
     }
 }

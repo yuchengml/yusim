@@ -24,8 +24,8 @@
 	typedef struct user_que {
 		USER_QUE_ITEM *head;
 		USER_QUE_ITEM *tail;
+		double credit;
 	} USER_QUE;
-
 
 	int insertQUE(REQ *r, USER_QUE *uq);
 	void evictQUE(USER_QUE *uq, USER_QUE_ITEM *tmp);

@@ -10,7 +10,7 @@
 	#define SSD_BLOCK_SIZE   4096 //(bytes)
 	#define SSD_BLOCK2SECTOR (SSD_BLOCK_SIZE/DISKSIM_SECTOR)
 	#define TIME_PERIOD 3
-	#define NUM_OF_USER 1
+	#define NUM_OF_USER 1 //系統認定trace的userno為1-n
 	
 	#define SSD_CACHING_SPACE_BY_BLOCKS (6156008/SSD_BLOCK2SECTOR)
 
@@ -33,6 +33,11 @@
 
 	/*prize caching*/
 	#define MIN_PRIZE 0.0
+	#define ALPHA 0.7
+	
+	/*credit*/
+	#define INIT_CREDIT 100
+	//#define ADD_CREDIT 100
 
 	/*Others*/
 	//參考ASCII Escape Code
