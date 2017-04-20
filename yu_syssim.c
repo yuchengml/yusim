@@ -60,6 +60,13 @@ void ssdsim_report_completion(SysTime t, struct disksim_request *r, void *ctx) {
     st.servedIORequest++;
     //printf("[SSDSIM]sysResponse = %lf, start = %lf, *responseTime = %lf, blkno = %lu\n", st.sysResponse, r->start, t-r->start, r->blkno);
     //printf("Now = %lf\n", now);
+    REQ *re;
+    re = calloc(1, sizeof(REQ));
+    //ATTENTION!! We ignore the information of each returned request except 'response time'. If you need that for users, you should do something!
+    re->responseTime = t-r->start;
+    if(sendRequestByMSQ(KEY_MSQ_DISKSIM_1, re, MSG_TYPE_DISKSIM_1_SERVED) == -1)
+        PrintError(KEY_MSQ_DISKSIM_1, "A control request not sent to MSQ in sendRequestByMSQ() return:");
+    free(re);
 }
 
 void hddsim_report_completion(SysTime t, struct disksim_request *r, void *ctx) {
@@ -68,8 +75,15 @@ void hddsim_report_completion(SysTime t, struct disksim_request *r, void *ctx) {
     st.sysResponse += (t-r->start);
     //Statistic
     st.servedIORequest++;
-    printf("[HDDSIM]sysResponse = %lf, start = %lf, *responseTime = %lf, blkno = %lu\n", st.sysResponse, r->start, t-r->start, r->blkno);
+    //printf("[HDDSIM]sysResponse = %lf, start = %lf, *responseTime = %lf, blkno = %lu\n", st.sysResponse, r->start, t-r->start, r->blkno);
     //printf("Now = %lf\n", now);
+    REQ *re;
+    re = calloc(1, sizeof(REQ));
+    //ATTENTION!! We ignore the information of each returned request except 'response time'. If you need that for users, you should do something!
+    re->responseTime = t-r->start;
+    if(sendRequestByMSQ(KEY_MSQ_DISKSIM_2, re, MSG_TYPE_DISKSIM_2_SERVED) == -1)
+        PrintError(KEY_MSQ_DISKSIM_2, "A control request not sent to MSQ in sendRequestByMSQ() return:");
+    free(re);
 }
 
 void exec_SSDsim(char *name, const char *parm_file, const char *output_file) {
@@ -116,9 +130,9 @@ void exec_SSDsim(char *name, const char *parm_file, const char *output_file) {
             printf(COLOR_YB"[SSDSIM]SYSResponseTime:%lf, Pending IO Requests:%lu, Served IO Requests:%lu\n"COLOR_N, st.sysResponse, st.pendIORequest, st.servedIORequest);
     		PrintSomething("<<<<<[SSDSIM] Shutdown!");
     		exit(0);
-		}
+		}/*
 		else if (rp->reqFlag == MSG_REQUEST_CONTROL_FLAG_SIMULATE) {
-            /* Process events until this I/O is completed */
+            //Process events until this I/O is completed 
             if (completed != 0) {
                 while(next_event >= 0) {
                     now = next_event;
@@ -133,7 +147,7 @@ void exec_SSDsim(char *name, const char *parm_file, const char *output_file) {
             }
             //Delete pending requests by de-buffering
             DeIntqBuffering();
-    	}
+    	}*/
     	else {
             pendReq = calloc(1, sizeof(IntqBufReq));
     		if (rp->reqFlag == 1)
@@ -167,6 +181,22 @@ void exec_SSDsim(char *name, const char *parm_file, const char *output_file) {
 
 		    completed++;
             disksim_interface_request_arrive(disksim, pendReq->req.start, &pendReq->req);
+
+            /* Process events until this I/O is completed */
+            if (completed != 0) {
+                while(next_event >= 0) {
+                    now = next_event;
+                    next_event = -1;
+                    disksim_interface_internal_event(disksim, now, 0);
+                }
+
+                if (completed != 0) {
+                    PrintError(completed, "[SSDSIM]internal error. Some events not completed:");
+                    exit(1);
+                }
+            }
+            //Delete pending requests by de-buffering
+            DeIntqBuffering();
     	}
     }
 }
@@ -214,9 +244,9 @@ void exec_HDDsim(char *name, const char *parm_file, const char *output_file) {
             printf(COLOR_YB"[HDDSIM]SYSResponseTime:%lf, Pending IO Requests:%lu, Served IO Requests:%lu\n"COLOR_N, st.sysResponse, st.pendIORequest, st.servedIORequest);
     		PrintSomething("<<<<<[HDDSIM] Shutdown!");
     		exit(0);
-		}
+		}/*
 		else if (rp->reqFlag == MSG_REQUEST_CONTROL_FLAG_SIMULATE) {
-    		/* Process events until this I/O is completed */
+    		//Process events until this I/O is completed 
             if (completed != 0) {
                 while(next_event >= 0) {
                     now = next_event;
@@ -231,7 +261,7 @@ void exec_HDDsim(char *name, const char *parm_file, const char *output_file) {
             }
             //Delete pending requests by de-buffering
             DeIntqBuffering();
-    	}
+    	}*/
     	else {
             pendReq = calloc(1, sizeof(IntqBufReq));
     		if (rp->reqFlag == 1)
@@ -265,6 +295,22 @@ void exec_HDDsim(char *name, const char *parm_file, const char *output_file) {
 
 		    completed++;
             disksim_interface_request_arrive(disksim, pendReq->req.start, &pendReq->req);
+
+            /* Process events until this I/O is completed */
+            if (completed != 0) {
+                while(next_event >= 0) {
+                    now = next_event;
+                    next_event = -1;
+                    disksim_interface_internal_event(disksim, now, 0);
+                }
+
+                if (completed != 0) {
+                    PrintError(completed, "[HDDSIM]internal error. Some events not completed:");
+                    exit(1);
+                }
+            }
+            //Delete pending requests by de-buffering
+            DeIntqBuffering();
     	}
     }
 }

@@ -43,6 +43,6 @@
 	int metaTableConvert(METABLOCK **oriTable, METABLOCK **objTable, METABLOCK *metablk);
 	void prizeCaching(REQ *tmp);
 
-	void sendRequest(key_t key, long int msgtype, REQ *r);
+	double sendRequest(key_t key, long int msgtype, REQ *r);
 	void pcStatistic();
 #endif

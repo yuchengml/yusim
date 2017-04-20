@@ -120,8 +120,8 @@ int main(int argc, char *argv[]) {
             //metaTablePrint();
 
             /*SIMULATION*/
-            sendSimulateControl(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1);
-            sendSimulateControl(KEY_MSQ_DISKSIM_2, MSG_TYPE_DISKSIM_2);
+            //sendSimulateControl(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1);
+            //sendSimulateControl(KEY_MSQ_DISKSIM_2, MSG_TYPE_DISKSIM_2);
 
             PAUSE
 
@@ -143,8 +143,8 @@ int main(int argc, char *argv[]) {
     //metaTablePrint();
 
     /*SIMULATION*/
-    sendSimulateControl(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1);
-    sendSimulateControl(KEY_MSQ_DISKSIM_2, MSG_TYPE_DISKSIM_2);
+    //sendSimulateControl(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1);
+    //sendSimulateControl(KEY_MSQ_DISKSIM_2, MSG_TYPE_DISKSIM_2);
 
     PAUSE
 

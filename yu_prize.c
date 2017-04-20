@@ -306,24 +306,38 @@ void prizeCaching(REQ *tmp) {
 	//printCACHEByLRU();
 }
 
-void sendRequest(key_t key, long int msgtype, REQ *r) {
-	/*
-	REQ *r;
-	r = calloc(1, sizeof(REQ));
-	r->arrivalTime = arrivalTime;
-	r->devno = devno;
-	r->blkno = blkno;
-	r->reqSize = reqSize;
-	r->reqFlag = reqFlag;
-	r->userno = userno;
-	r->responseTime = responseTime;
-	*/
+double sendRequest(key_t key, long int msgtype, REQ *r) {
 	if(sendRequestByMSQ(key, r, msgtype) == -1)
         PrintError(-1, "A request not sent to MSQ in sendRequestByMSQ() return:");
 
     pcst.totalBlkReq++;
     if (key == KEY_MSQ_DISKSIM_1)
 	    pcst.ssdBlkReq++;
+
+    double response = -1;
+    if (key == KEY_MSQ_DISKSIM_1) {
+    	REQ *rtn;
+    	rtn = calloc(1, sizeof(REQ));
+    	if(recvRequestByMSQ(key, rtn, MSG_TYPE_DISKSIM_1_SERVED) == -1)
+    	    PrintError(-1, "[PC]A request not received from MSQ in recvRequestByMSQ():");
+    	response = rtn->responseTime;
+    	//printf("PC_ResponseTime=%lf\n", response);
+    	free(rtn);
+    	return response;
+    }
+    else if (key == KEY_MSQ_DISKSIM_2) {
+    	REQ *rtn;
+    	rtn = calloc(1, sizeof(REQ));
+    	if(recvRequestByMSQ(key, rtn, MSG_TYPE_DISKSIM_2_SERVED) == -1)
+    	    PrintError(-1, "[PC]A request not received from MSQ in recvRequestByMSQ():");
+    	response = rtn->responseTime;
+    	//printf("PC_ResponseTime=%lf\n", response);
+    	free(rtn);
+    	return response;
+    }
+    else
+    	PrintError(-1, "Send/Receive message with wrong key");
+    return response;
 }
 
 void pcStatistic() {
