@@ -5,12 +5,21 @@
 #include "yu_parameter.h"
 #include "yu_structure.h"
 
-	typedef double credit;
+	/*USER CREDIT*/
+	static double userCredit[NUM_OF_USER];
 
-	credit creditInit(USER_QUE *user);
-	credit creditReplenish(USER_QUE *user);
-	credit creditCharge(USER_QUE *user, credit value);
-	credit creditCompensate(USER_QUE *user, credit value);
+	/*CREDIT INITIALIZATION*/
+	double creditInit(unsigned userno);
+	/*CREDIT REPLENISHMENT*/
+	double creditReplenish(unsigned userno);
+	/*CREDIT CHARGING*/
+	double creditCharge(unsigned userno, double value);
+	/*CREDIT COMPENSATION*/
+	double creditCompensate(unsigned userno, double value);
+	/*CREDIT-BASED SCHEDULER*/
 	int creditScheduler(USER_QUE user[]);
+
+	/*印出所有user的credit*/
+	void printCredit();
 
 #endif

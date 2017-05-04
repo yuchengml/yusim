@@ -1,5 +1,12 @@
 #include "yu_ipc.h"
 
+/*CREATE MESSAGE QUEUE*/
+/**
+ * [根據指定的Key值和Message Queue Flag建立]
+ * @param {key_t} key [Key值]
+ * @param {int} msqflag [Message Queue Flag]
+ * @return {int} 0/-1 [Success(0) or Fail(-1)]
+ */
 int createMessageQueue(key_t key, int msqflag) {
 	int msqid = -1;
 	msqid = msgget(key, msqflag | 0666);
@@ -11,6 +18,13 @@ int createMessageQueue(key_t key, int msqflag) {
 		return -1;
 }
 
+/*REMOVE MESSAGE QUEUE*/
+/**
+ * [根據指定的Key值和Message Queue Flag刪除]
+ * @param {key_t} key [Key值]
+ * @param {struct msqid_ds*} msqds [Message Queue Data Structure]
+ * @return {int} 0/-1 [Success(0) or Fail(-1)]
+ */
 int removeMessageQueue(key_t key, struct msqid_ds *msqds) {
 	int msqid;
 	msqid = msgget((key_t)key, IPC_CREAT);
@@ -23,7 +37,15 @@ int removeMessageQueue(key_t key, struct msqid_ds *msqds) {
 		
 }
 
-int sendRequestByMSQ(key_t key, REQ *r, long int msgtype) {
+/*SEND REQUEST BY MESSAGE QUEUE*/
+/**
+ * [根據指定的Key值代表特定的Message Queue和Message Type傳送Request]
+ * @param {key_t} key [Key值]
+ * @param {REQ*} r [Request]
+ * @param {long} msgtype [Message Queue Type]
+ * @return {int} 0/-1 [Success(0) or Fail(-1)]
+ */
+int sendRequestByMSQ(key_t key, REQ *r, long msgtype) {
 	int msqid;
 	msqid = msgget((key_t)key, IPC_CREAT);
 
@@ -45,7 +67,15 @@ int sendRequestByMSQ(key_t key, REQ *r, long int msgtype) {
 		//PrintError(msqid, "A request not sent to MSQ:");	
 }
 
-int recvRequestByMSQ(key_t key, REQ *r, long int msgtype) {
+/*RECEIVE REQUEST BY MESSAGE QUEUE*/
+/**
+ * [根據指定的Key值代表特定的Message Queue和Message Type接收Request]
+ * @param {key_t} key [Key值]
+ * @param {REQ*} r [Request]
+ * @param {long} msgtype [Message Queue Type]
+ * @return {int} 0/-1 [Success(0) or Fail(-1)]
+ */
+int recvRequestByMSQ(key_t key, REQ *r, long msgtype) {
 	int msqid;
 	msqid = msgget((key_t)key, IPC_CREAT);
 
@@ -67,6 +97,10 @@ int recvRequestByMSQ(key_t key, REQ *r, long int msgtype) {
 	}	
 }
 
+/*TEST MESSAGE QUEUE*/
+/**
+ * [測試使用，僅參考，可忽略]
+ */
 void testMessageQueue() {
 	//data structure for msg queue
 	struct msqid_ds ds;
@@ -105,7 +139,14 @@ void testMessageQueue() {
 		PrintError(KEY_MSQ_DISKSIM_2, "Not remove message queue:(key)");
 }
 
-int sendFinishControl(key_t key, long int msgtype) {
+/*SEND FINISH CONTROL MESSAGE BY MESSAGE QUEUE*/
+/**
+ * [根據指定的Key值代表特定的Message Queue和Message Type傳送一Message(帶有特定Flag的Request)，其代表告知simulator應進行Shutdown之工作]
+ * @param {key_t} key [Key值]
+ * @param {long} msgtype [Message Queue Type]
+ * @return {int} 0/-1 [Success(0) or Fail(-1)]
+ */
+int sendFinishControl(key_t key, long msgtype) {
 	REQ *ctrl;
     ctrl = calloc(1, sizeof(REQ));
     ctrl->reqFlag = MSG_REQUEST_CONTROL_FLAG_FINISH;
@@ -115,16 +156,4 @@ int sendFinishControl(key_t key, long int msgtype) {
     }
     else
     	return 0;
-}
-
-int sendSimulateControl(key_t key, long int msgtype) {
-	REQ *ctrl;
-	ctrl = calloc(1, sizeof(REQ));
-	ctrl->reqFlag = MSG_REQUEST_CONTROL_FLAG_SIMULATE;
-	if(sendRequestByMSQ(key, ctrl, msgtype) == -1) {
-	    PrintError(key, "A control request not sent to MSQ in sendRequestByMSQ() return:");
-		return -1;
-	}
-	else
-		return 0;
 }

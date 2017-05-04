@@ -9,8 +9,8 @@
     #define SSD_PAGE_SIZE    64 //(bytes)
 	#define SSD_BLOCK_SIZE   4096 //(bytes)
 	#define SSD_BLOCK2SECTOR (SSD_BLOCK_SIZE/DISKSIM_SECTOR)
-	#define TIME_PERIOD 3
-	#define NUM_OF_USER 1 //系統認定trace的userno為1-n
+	#define TIME_PERIOD 3000
+	#define NUM_OF_USER 1 //Hint:trace的userno是由1至n
 	
 	#define SSD_CACHING_SPACE_BY_BLOCKS (6156008/SSD_BLOCK2SECTOR)
 
@@ -23,20 +23,24 @@
 	#define MSG_TYPE_DISKSIM_2 200
 	#define MSG_TYPE_DISKSIM_2_SERVED 201
 
-	#define MSG_REQUEST_CONTROL_FLAG_SIMULATE 701
 	#define MSG_REQUEST_CONTROL_FLAG_FINISH 999
 
 	/*structure*/
-	#define BLOCK_FLAG_FREE   0
-	#define BLOCK_FLAG_CLEAN  1
-	#define BLOCK_FLAG_DIRTY  -1
+	
+
+	/*cache*/
+	#define BLOCK_FLAG_FREE 0
+	#define BLOCK_FLAG_CLEAN 1
+	#define BLOCK_FLAG_DIRTY -1
+	#define CACHE_FULL 1
+	#define CACHE_NOT_FULL 0
 
 	/*prize caching*/
 	#define MIN_PRIZE 0.0
 	#define ALPHA 0.7
 	
 	/*credit*/
-	#define INIT_CREDIT 100
+	#define INIT_CREDIT 1000
 	//#define ADD_CREDIT 100
 
 	/*Others*/

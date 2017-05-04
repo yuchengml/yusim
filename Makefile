@@ -78,7 +78,7 @@ distclean: realclean
 	$(MAKE) -C modules distclean
 
 yuclean:
-	rm -f yusim.o yu_debug.o yu_prize.o yu_structure.o yu_syssim.o yu_ipc.o yu_cache.o
+	rm -f yusim.o yu_debug.o yu_prize.o yu_structure.o yu_syssim.o yu_ipc.o yu_cache.o yu_credit.o
 
 .PHONY: modules
 
@@ -104,7 +104,7 @@ DISKSIM_SRC = disksim.c disksim_intr.c disksim_pfsim.c \
 	disksim_simpledisk.c disksim_device.c \
 	disksim_loadparams.c \
 	raw_layout.c \
-	yu_debug.c yu_prize.c yu_structure.c yu_syssim.c yu_ipc.c yu_cache.c
+	yu_debug.c yu_prize.c yu_structure.c yu_syssim.c yu_ipc.c yu_cache.c yu_credit.c
 
 DISKSIM_OBJ = $(DISKSIM_SRC:.c=.o) 
 
