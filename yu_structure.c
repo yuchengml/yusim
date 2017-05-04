@@ -1,18 +1,27 @@
 #include "yu_structure.h"
 
-/*放進User Queue並轉換以Block為單位的requests*/
-int insertQUE(REQ *r, USER_QUE *uq) {
+/*USER QUEUE INSERTION*/
+/**
+ * [放進User Queue並轉換以Block為單位的requests]
+ * @param {REQ*} r [Yusim-defined request pointer]
+ * @param {unsigned} userno [User number]
+ * @return {int} 0/-1 [Error flag(True or False)]
+ */
+int insertQUE(REQ *r, unsigned userno) {
+	if (userno > NUM_OF_USER-1) {
+		return -1;
+	}
 	/*block_count代表此request共存取多少SSD Block*/
 	int block_count;
 	block_count = r->reqSize/SSD_BLOCK2SECTOR;
 	int i;
 	for (i = 0; i < block_count; i++) {
-		if (uq->head == NULL) {
-			uq->head = calloc(1, sizeof(USER_QUE_ITEM));
-			uq->tail = uq->head;
-			copyReq(r, &(uq->head->r));
-			uq->head->r.blkno += i*SSD_BLOCK2SECTOR;
-			uq->head->r.reqSize = SSD_BLOCK2SECTOR;
+		if (userq[userno].head == NULL) {
+			userq[userno].head = calloc(1, sizeof(USER_QUE_ITEM));
+			userq[userno].tail = userq[userno].head;
+			copyReq(r, &(userq[userno].head->r));
+			userq[userno].head->r.blkno += i*SSD_BLOCK2SECTOR;
+			userq[userno].head->r.reqSize = SSD_BLOCK2SECTOR;
 		}
 		else {
 			USER_QUE_ITEM *tmp;
@@ -20,29 +29,35 @@ int insertQUE(REQ *r, USER_QUE *uq) {
 			copyReq(r, &(tmp->r));
 			tmp->r.blkno += i*SSD_BLOCK2SECTOR;
 			tmp->r.reqSize = SSD_BLOCK2SECTOR;
-			tmp->front_req = uq->head;
-			uq->head->back_req = tmp;
-			uq->head = tmp;
+			tmp->front_req = userq[userno].head;
+			userq[userno].head->back_req = tmp;
+			userq[userno].head = tmp;
 		}
 	}
 	totalRequests++;
 	return 0;
 }
 
-void evictQUE(USER_QUE *uq, USER_QUE_ITEM *tmp) {
-	if (tmp == uq->tail) {
-		if (tmp == uq->head) {
-			uq->head = NULL;
-			uq->tail = NULL;
+/*USER QUEUE EVICTION*/
+/**
+ * [根據欲剔除的user queue item進行剔除，並釋放記憶體]
+ * @param {unsigned} userno [User number]
+ * @param {USER_QUE_ITEM*} tmp [User queue item pointer]
+ */
+void evictQUE(unsigned userno, USER_QUE_ITEM *tmp) {
+	if (tmp == userq[userno].tail) {
+		if (tmp == userq[userno].head) {
+			userq[userno].head = NULL;
+			userq[userno].tail = NULL;
 		}
 		else {
-			uq->tail->back_req->front_req = NULL;
-			uq->tail = uq->tail->back_req;
+			userq[userno].tail->back_req->front_req = NULL;
+			userq[userno].tail = userq[userno].tail->back_req;
 		}
 	}
-	else if (tmp == uq->head) {
-		uq->head->front_req->back_req = NULL;
-		uq->head = uq->head->front_req;
+	else if (tmp == userq[userno].head) {
+		userq[userno].head->front_req->back_req = NULL;
+		userq[userno].head = userq[userno].head->front_req;
 	}
 	else {
 		tmp->front_req->back_req = tmp->back_req;
@@ -52,49 +67,55 @@ void evictQUE(USER_QUE *uq, USER_QUE_ITEM *tmp) {
 	free(tmp);
 }
 
-void printQUE(USER_QUE *uq) {
-	unsigned count = 0;
-	USER_QUE_ITEM *tmp = uq->tail;
-	printf("[USER QUEUE]<<<");
-	while (tmp != NULL) {
-		count++;
-		printf("%6lu <-> ", tmp->r.blkno);
-		tmp = tmp->back_req;
+/*USER QUEUE OUTPUT*/
+/**
+ * [印出所有User queue的內容]
+ */
+void printQUE() {
+	int i;
+	unsigned count;
+	USER_QUE_ITEM *tmp;
+	for (i = 0; i < NUM_OF_USER; i++) {
+		count = 0;
+		tmp = userq[i].tail;
+		printf("[USER QUEUE][%d]<<<", i);
+		while (tmp != NULL) {
+			count++;
+			printf("%6lu <-> ", tmp->r.blkno);
+			tmp = tmp->back_req;
+		}
+		printf("NULL (%u)\n", count);
 	}
-	printf("NULL (%u)\n", count);
 }
 
-/*
-int main(int argc, char const *argv[]) {
-	printf("This file is to define structure.\n");
-
-	USER_QUE_ITEM *userQue;
-	userQue = (USER_QUE_ITEM *)malloc(sizeof(USER_QUE_ITEM));
-	REQ req = {0.5, 0, 123, 72, 0, 0};
-	//userQue->request = &req;
-	//userQue->next_req = NULL;
-	insertQUE(userQue, req, NULL);
-	evictQUE(userQue);
-
-	userQue->next_req = (USER_QUE_ITEM *)malloc(sizeof(USER_QUE_ITEM));
-	REQ req2 = {7.5, 0, 456, 36, 1, 2};
-	insertQUE(userQue->next_req, req2, NULL);
-	evictQUE(userQue->next_req);
-
-
-	return 0;
-}
-*/
-void copyReq(REQ *r1, REQ *r2) {
-	r2->arrivalTime = r1->arrivalTime;
-	r2->devno = r1->devno;
-	r2->blkno = r1->blkno;
-	r2->reqSize = r1->reqSize;
-	r2->reqFlag = r1->reqFlag;
-	r2->userno = r1->userno;
-	r2->responseTime = r1->responseTime;
+/**
+ * [複製Request內容, r to copy]
+ * @param {REQ*} r [Yusim-defined request pointer]
+ * @param {REQ*} copy [Yusim-defined request pointer]
+ */
+void copyReq(REQ *r, REQ *copy) {
+	copy->arrivalTime = r->arrivalTime;
+	copy->devno = r->devno;
+	copy->blkno = r->blkno;
+	copy->reqSize = r->reqSize;
+	copy->reqFlag = r->reqFlag;
+	copy->userno = r->userno;
+	copy->responseTime = r->responseTime;
 }
 
+/**
+ * [根據進入User queue的request數量，取得Request總數(應同於Trace筆數)]
+ * @return {unsigned long} totalRequests [The num of requests]
+ */
 unsigned long getTotalReqs() {
 	return totalRequests;
+}
+
+/**
+ * [將SSD Block Number轉成Disksim Block(Sector)]
+ * @param {unsigned long} ssd_blk [SSD Block Number]
+ * @return {unsigned long} - [Block(Sector) Number for SSDsim(Disksim)]
+ */
+unsigned long ssdBlk2simSector(unsigned long ssd_blk) {
+	return ssd_blk*SSD_BLOCK2SECTOR;
 }

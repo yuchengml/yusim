@@ -3,8 +3,15 @@
 pid_t SSDsimProc, HDDsimProc;
 FILE *trace;
 char *par[5];
-USER_QUE userq[NUM_OF_USER];
+double scheduleTime = 0;
 
+unsigned long replenishmentCnt = 0;
+
+/*DISKSIM INITIALIZATION*/
+/**
+ * [Disksim的初始化，利用兩個Process各自執行Disksim，作為SSDsim和HDDsim，
+ *  接續MESSAGE QUEUE INITIALIZATION]
+ */
 void initDisksim() {
     pid_t procid;
     procid = fork();
@@ -34,6 +41,10 @@ void initDisksim() {
     initMSQ();
 }
 
+/*DISKSIM SHUTDOWN*/
+/**
+ * [Disksim的關閉，傳送Control message 告知其Process進行Shutdown，並等待回傳結果message]
+ */
 void rmDisksim() {
     REQ *ctrl, *ctrl_rtn;
     ctrl = calloc(1, sizeof(REQ));
@@ -54,6 +65,10 @@ void rmDisksim() {
     rmMSQ();
 }
 
+/*MESSAGE QUEUE INITIALIZATION*/
+/**
+ * [Message queue初始化，使用系統定義的Key值、Type和IPC function]
+ */
 void initMSQ() {
     if(createMessageQueue(KEY_MSQ_DISKSIM_1, IPC_CREAT) == -1)
         PrintError(-1, " MSQ create error in createMessageQueue():");
@@ -61,6 +76,10 @@ void initMSQ() {
         PrintError(-1, " MSQ create error in createMessageQueue():");
 }
 
+/*MESSAGE QUEUE REMOVE*/
+/**
+ * [Message queue刪除，使用系統定義的Key值和IPC function]
+ */
 void rmMSQ() {
     struct msqid_ds ds;
     if(removeMessageQueue(KEY_MSQ_DISKSIM_1, &ds) == -1)
@@ -69,11 +88,60 @@ void rmMSQ() {
         PrintError(KEY_MSQ_DISKSIM_2, "Not remove message queue:(key)");
 }
 
-void caching() {
-    creditScheduler(userq);
-    while (userq[0].tail != NULL) {
-        prizeCaching(&userq[0].tail->r); //PRIZE.C
-        evictQUE(&userq[0], userq[0].tail);
+/*I/O SCHEDULING*/
+/**
+ * [Credit-based Scheduler，並且推算系統時間，決定Request delivery(Trace->User queue)]
+ * @param {double} next_timout [The arrival time of the next request waiting for queueing]
+ */
+void scheduling(double next_timeout) {
+    double response;
+    int candidate;
+    
+    while (1) {
+        //Credit-based Scheduler
+        candidate = creditScheduler(userq);
+        //User Queue無任何Requests，則Stop scheduling
+        if (candidate == -1) {
+            //printf("[YUSIM]No any request! Stop scheduling and delivery more request into 'userq'(%lf)\n", scheduleTime);
+            break;
+        }
+
+        /*CACHING ALGORITHM*/
+        //回傳可得response time
+        response = prizeCaching(&userq[candidate].tail->r); //PRIZE.C
+        //推算執行時間，為模擬系統時間
+        //若目前的時間小於下一個request抵達的時間，則將系統時間往後推至下一個request完成的時間
+        if (scheduleTime < userq[candidate].tail->r.arrivalTime)
+            scheduleTime = response + userq[candidate].tail->r.arrivalTime;
+        else //否則，只須累加下一個request的response time即可
+            scheduleTime += response;
+        //printf("[YUSIM]Blkno=%lu, Response time=%lf, scheduleTime=%lf\n", userq[candidate].tail->r.blkno, response, scheduleTime);
+        evictQUE(candidate, userq[candidate].tail);
+        
+        /*CREDIT CHARGING*/
+        //目前做法:假設一個Block Request做完後才扣Credit
+        creditCharge(candidate, response);
+        //printCredit();
+        //creditCompensate();
+
+        //根據TIME_PERIOD，週期性進行credit的補充
+        if (floor(scheduleTime / TIME_PERIOD) - replenishmentCnt > 0) {
+            replenishmentCnt = floor(scheduleTime / TIME_PERIOD);
+            //printf("[YUSIM]creditReplenish()[%lu](%lf)\n", replenishmentCnt, scheduleTime);
+            
+            int i;
+            for(i = 0; i < NUM_OF_USER; i++) {
+                /*CREDIT REPLENISHMENT*/
+                creditReplenish(i);
+            }
+            //printCredit();
+        }
+
+        //推算系統執行時間，是否有requests要進入User queue
+        if (next_timeout != -1 && next_timeout <= scheduleTime) {
+            //printf("[YUSIM]Some requests coming! Stop scheduling and delivery more request into 'userq'(%lf)\n", scheduleTime);
+            break;
+        }
     }
 }
 
@@ -89,18 +157,27 @@ int main(int argc, char *argv[]) {
     par[4] = argv[5];
 
     initDisksim();
-    printf("Enter to continute ...\n");
+
+    int i;
+    for(i = 0; i < NUM_OF_USER; i++) {
+        creditInit(i);
+    }
+    
+    //printCredit();
+
+    printf("[YUSIM]creditInit() finish!\n");
+
+    printf("[YUSIM]Enter to continute ...\n");
+    
     getchar();
-
-    double timeout = TIME_PERIOD;
-
+    
     REQ *tmp, *rtn;
     tmp = calloc(1, sizeof(REQ));
     rtn = calloc(1, sizeof(REQ));
 
     trace = fopen(par[0], "r");
     if (!trace)
-        PrintError(-1, "Input file open error");
+        PrintError(-1, "[YUSIM]Input file open error");
 
     while(!feof(trace)) {
         fscanf(trace, "%lf%u%lu%u%u%u", &tmp->arrivalTime, &tmp->devno, &tmp->blkno, &tmp->reqSize, &tmp->reqFlag, &tmp->userno);
@@ -108,49 +185,41 @@ int main(int argc, char *argv[]) {
         //getchar();
 
         //判斷時間間隔，用於策略的動態調整
-        if (tmp->arrivalTime < timeout) {
+        if (tmp->arrivalTime <= scheduleTime) {
             /*USER IDENTIFICATION*/
-            insertQUE(tmp, &userq[tmp->userno-1]);
+            if(insertQUE(tmp, tmp->userno-1) == -1)
+                PrintError(-1, "[YUSIM]Error user or user queue! insertQUE():");
         }
         else {
-            //printf(COLOR_RB"Time to %lf\n"COLOR_N, timeout);
-            //printQUE(&userq[tmp->userno-1]);
-            /*CACHING ALGORITHM*/
-            caching();
+            //printf(COLOR_RB"[YUSIM]Time to %lf\n"COLOR_N, scheduleTime);
+            //printQUE();
+            
+            scheduling(tmp->arrivalTime);
             //metaTablePrint();
-
-            /*SIMULATION*/
-            //sendSimulateControl(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1);
-            //sendSimulateControl(KEY_MSQ_DISKSIM_2, MSG_TYPE_DISKSIM_2);
 
             PAUSE
 
             /*USER IDENTIFICATION*/
-            insertQUE(tmp, &userq[tmp->userno-1]);
-
+            if(insertQUE(tmp, tmp->userno-1) == -1)
+                PrintError(-1, "[YUSIM]Error user or user queue!\n");
             /*NEXT TIME PERIOD*/
             //The N-th time period = (int)(tmp->arrivalTime/TIME_PERIOD + 1);N=1~n
-            timeout = (int)(tmp->arrivalTime/TIME_PERIOD + 1) * TIME_PERIOD;
+            
         }
-                
+             
     }
-
-    //printf(COLOR_RB"Time to %lf\n"COLOR_N, timeout);
-    //printQUE(&userq[tmp->userno-1]);
+    //printf(COLOR_RB"[YUSIM]Time to %lf\n"COLOR_N, scheduleTime);
+    //printQUE();
     /*THE LAST TIME PERIOD*/
-    /*CACHING ALGORITHM*/
-    caching();
+    
+    scheduling(-1);
     //metaTablePrint();
-
-    /*SIMULATION*/
-    //sendSimulateControl(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1);
-    //sendSimulateControl(KEY_MSQ_DISKSIM_2, MSG_TYPE_DISKSIM_2);
 
     PAUSE
 
     rmDisksim();
 
-    printf(COLOR_YB"Receive requests:%lu\n"COLOR_N, getTotalReqs());
+    printf(COLOR_YB"[YUSIM]Receive requests:%lu\n"COLOR_N, getTotalReqs());
     //PRIZE.C
     pcStatistic();
 

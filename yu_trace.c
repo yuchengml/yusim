@@ -24,6 +24,23 @@ void traceFile2max(FILE *fin) {
     printf("maxBlkno = %lu\n", maxBlkno);
 }
 
+void traceFile2blkno(FILE *fin) {
+    unsigned long num = 0;
+    double arrivalTime;
+    unsigned long devno, blkno, reqSize, reqFlag, userno;
+    /*block_count代表此request共存取多少SSD Block*/
+    int block_count;
+    while(!feof(fin)) {
+        fscanf(fin, "%lf%lu%lu%lu%lu%lu", &arrivalTime, &devno, &blkno, &reqSize, &reqFlag, &userno);
+        block_count = reqSize/SSD_BLOCK2SECTOR;
+        int i;
+        for (i = 0; i < block_count; i++) {
+            num++;
+        }
+    }
+    printf("num = %lu\n", num);
+}
+
 int main(int argc, char const *argv[]) {
 	printf("This is a file to trace workload.\n");
 
@@ -53,7 +70,8 @@ int main(int argc, char const *argv[]) {
     
 
     //traceFile2print(fin);
-    traceFile2max(fin);
+    //traceFile2max(fin);
+    traceFile2blkno(fin);
 
     fclose(fin);
     //fclose(fout);

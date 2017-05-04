@@ -7,16 +7,17 @@
 #include "yu_debug.h"
 #include "yu_prize.h"
 #include "yu_structure.h"
-#include "yu_trace.h"
 #include "yu_syssim.h"
 #include "yu_ipc.h"
 #include "yu_credit.h"
 
-/*Simulator*/
+/*DISKSIM INITIALIZATION*/
 void initDisksim();
+/*DISKSIM SHUTDOWN*/
 void rmDisksim();
+/*MESSAGE QUEUE INITIALIZATION*/
 void initMSQ();
+/*MESSAGE QUEUE REMOVE*/
 void rmMSQ();
-
-/*Caching Policy*/
-void caching();
+/*I/O SCHEDULING*/
+void scheduling(double next_timeout);
