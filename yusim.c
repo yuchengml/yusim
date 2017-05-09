@@ -1,11 +1,11 @@
 #include "yusim.h"
 
 pid_t SSDsimProc, HDDsimProc;
-FILE *trace;
-char *par[5];
+FILE *trace, *statistics;
+char *par[6];
 double scheduleTime = 0;
 
-unsigned long replenishmentCnt = 0;
+unsigned long period = 0;
 
 /*DISKSIM INITIALIZATION*/
 /**
@@ -118,23 +118,30 @@ void scheduling(double next_timeout) {
         //printf("[YUSIM]Blkno=%lu, Response time=%lf, scheduleTime=%lf\n", userq[candidate].tail->r.blkno, response, scheduleTime);
         evictQUE(candidate, userq[candidate].tail);
         
+        /*USER STATISTICS*/
+        userst[candidate].responseTime += response;
+
         /*CREDIT CHARGING*/
         //目前做法:假設一個Block Request做完後才扣Credit
         creditCharge(candidate, response);
         //printCredit();
         //creditCompensate();
 
-        //根據TIME_PERIOD，週期性進行credit的補充
-        if (floor(scheduleTime / TIME_PERIOD) - replenishmentCnt > 0) {
-            replenishmentCnt = floor(scheduleTime / TIME_PERIOD);
-            //printf("[YUSIM]creditReplenish()[%lu](%lf)\n", replenishmentCnt, scheduleTime);
+        //根據TIME_PERIOD，週期性進行credit的補充與記錄實驗數據
+        if (floor(scheduleTime / TIME_PERIOD) - period > 0) {
+            period = floor(scheduleTime / TIME_PERIOD);
+            //printf("[YUSIM]creditReplenish()[%lu](%lf)\n", period, scheduleTime);
             
-            int i;
+            unsigned long i;
             for(i = 0; i < NUM_OF_USER; i++) {
                 /*CREDIT REPLENISHMENT*/
                 creditReplenish(i);
             }
             //printCredit();
+            
+            /*USER STATISTICS*/
+            //記錄實驗數據
+            writeStatFile(scheduleTime, &statistics);
         }
 
         //推算系統執行時間，是否有requests要進入User queue
@@ -146,8 +153,8 @@ void scheduling(double next_timeout) {
 }
 
 int main(int argc, char *argv[]) {
-	if (argc != 6) {
-    	fprintf(stderr, "usage: %s <Trace file> <param file for SSD> <output file for SSD> <param file for HDD> <output file for HDD>\n", argv[0]);
+	if (argc != 7) {
+    	fprintf(stderr, "usage: %s <Trace file> <param file for SSD> <output file for SSD> <param file for HDD> <output file for HDD> <output file for STAT>\n", argv[0]);
     	exit(1);
     }
     par[0] = argv[1];
@@ -155,8 +162,10 @@ int main(int argc, char *argv[]) {
     par[2] = argv[3];
     par[3] = argv[4];
     par[4] = argv[5];
+    par[5] = argv[6];
 
     initDisksim();
+    initUSERSTAT();
 
     int i;
     for(i = 0; i < NUM_OF_USER; i++) {
@@ -174,6 +183,8 @@ int main(int argc, char *argv[]) {
     REQ *tmp, *rtn;
     tmp = calloc(1, sizeof(REQ));
     rtn = calloc(1, sizeof(REQ));
+
+    statistics = fopen(par[5], "w");
 
     trace = fopen(par[0], "r");
     if (!trace)
@@ -221,7 +232,11 @@ int main(int argc, char *argv[]) {
 
     printf(COLOR_YB"[YUSIM]Receive requests:%lu\n"COLOR_N, getTotalReqs());
     //PRIZE.C
-    pcStatistic();
+    pcStatistics();
+
+    /*USER STATISTICS*/
+    writeStatFile(scheduleTime, &statistics);
+    printUSERSTAT(scheduleTime);
 
 	// Waiting for SSDsim and HDDsim process
     wait(NULL);
@@ -229,6 +244,8 @@ int main(int argc, char *argv[]) {
     //OR
     //printf("Main Process waits for: %d\n", wait(NULL));
     //printf("Main Process waits for: %d\n", wait(NULL));
+    fclose(trace);
+    fclose(statistics);
 
 	exit(0);
 }

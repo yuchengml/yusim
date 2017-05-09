@@ -195,6 +195,7 @@ double prizeCaching(REQ *tmp) {
 	if (tmp->reqFlag == DISKSIM_READ) {
 		flag = BLOCK_FLAG_CLEAN;
 		pcst.UserRReq++;
+		userst[tmp->userno-1].UserRReq++;
 	}
 	else
 		flag = BLOCK_FLAG_DIRTY;
@@ -206,6 +207,7 @@ double prizeCaching(REQ *tmp) {
 	//(2)若為APN，則更新APN並發出SSDsim request
 	if (search_APN != NULL) {
 		pcst.hitCount++;
+		userst[tmp->userno-1].hitCount++;
 		//(3a)更新metadata(prize)
 		metaTableUpdate(search_APN, tmp);
 		//Read,Write SSDsim
@@ -215,10 +217,12 @@ double prizeCaching(REQ *tmp) {
 		r->blkno = ssdBlk2simSector(search_APN->ssd_blkno);
 		response += sendRequest(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1, r);
 		pcst.totalUserReq++;
+		userst[tmp->userno-1].totalUserReq++;
 		free(r);
 	}
 	else {
 		pcst.missCount++;
+		userst[tmp->userno-1].missCount++;
 		//(2)若為CPN，則更新CPN並考慮轉至APN
 		if (search_CPN != NULL) {
 			//(3b)更新metadata(prize)
@@ -247,11 +251,13 @@ double prizeCaching(REQ *tmp) {
 					//Read HDDsim
 					response += sendRequest(KEY_MSQ_DISKSIM_2, MSG_TYPE_DISKSIM_2, tmp);
 					pcst.totalUserReq++;
+					userst[tmp->userno-1].totalUserReq++;
 					//Write SSDsim
 					r->reqFlag = DISKSIM_WRITE;
 					r->blkno = ssdBlk2simSector(search_CPN->ssd_blkno);
 					response += sendRequest(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1, r);
 					pcst.totalSysReq++;
+					userst[tmp->userno-1].totalSysReq++;
 					free(r);
 				}
 				else {//如果是Write, 則Write SSDsim
@@ -261,6 +267,7 @@ double prizeCaching(REQ *tmp) {
 					r->blkno = ssdBlk2simSector(search_CPN->ssd_blkno);
 					response += sendRequest(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1, r);
 					pcst.totalUserReq++;
+					userst[tmp->userno-1].totalUserReq++;
 					free(r);
 				}
 			}
@@ -292,13 +299,17 @@ double prizeCaching(REQ *tmp) {
 						r2->reqFlag = DISKSIM_WRITE;
 						response += sendRequest(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1, r1);
 						pcst.totalSysReq++;
+						userst[tmp->userno-1].totalSysReq++;
 						response += sendRequest(KEY_MSQ_DISKSIM_2, MSG_TYPE_DISKSIM_2, r2);
 						pcst.totalSysReq++;
+						userst[tmp->userno-1].totalSysReq++;
 						free(r1);
 						free(r2);
 						pcst.dirtyCount++;
+						userst[tmp->userno-1].dirtyCount++;
 					}
 					pcst.evictCount++;
+					userst[tmp->userno-1].evictCount++;
 					
 					//Caching
 					if (insertCACHE(&search_CPN->ssd_blkno, &search_CPN->hdd_blkno, flag) != -1) {
@@ -314,11 +325,13 @@ double prizeCaching(REQ *tmp) {
 							//Read HDDsim
 							response += sendRequest(KEY_MSQ_DISKSIM_2, MSG_TYPE_DISKSIM_2, tmp);
 							pcst.totalUserReq++;
+							userst[tmp->userno-1].totalUserReq++;
 							//Write SSDsim
 							r->reqFlag = DISKSIM_WRITE;
 							r->blkno = ssdBlk2simSector(search_CPN->ssd_blkno);
 							response += sendRequest(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1, r);
 							pcst.totalSysReq++;
+							userst[tmp->userno-1].totalSysReq++;
 							free(r);
 						}
 						else {//如果是Write, 則Write SSDsim
@@ -328,6 +341,7 @@ double prizeCaching(REQ *tmp) {
 							r->blkno = ssdBlk2simSector(search_CPN->ssd_blkno);
 							response += sendRequest(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1, r);
 							pcst.totalUserReq++;
+							userst[tmp->userno-1].totalUserReq++;
 							free(r);
 						}
 					}
@@ -338,6 +352,7 @@ double prizeCaching(REQ *tmp) {
 					//Read,Write HDDsim
 					response += sendRequest(KEY_MSQ_DISKSIM_2, MSG_TYPE_DISKSIM_2, tmp);
 					pcst.totalUserReq++;
+					userst[tmp->userno-1].totalUserReq++;
 				}
 			}
 		}
@@ -345,6 +360,7 @@ double prizeCaching(REQ *tmp) {
 			//Read,Write HDDsim
 			response += sendRequest(KEY_MSQ_DISKSIM_2, MSG_TYPE_DISKSIM_2, tmp);
 			pcst.totalUserReq++;
+			userst[tmp->userno-1].totalUserReq++;
 		}
 	}
 	//printCACHEByLRU();
@@ -365,8 +381,11 @@ double sendRequest(key_t key, long msgtype, REQ *r) {
         PrintError(-1, "A request not sent to MSQ in sendRequestByMSQ() return:");
 
     pcst.totalBlkReq++;
-    if (key == KEY_MSQ_DISKSIM_1)
+    userst[r->userno-1].totalBlkReq++;
+    if (key == KEY_MSQ_DISKSIM_1) {
 	    pcst.ssdBlkReq++;
+	    userst[r->userno-1].ssdBlkReq++;
+    }
 
     double response = -1;
     if (key == KEY_MSQ_DISKSIM_1) {
@@ -397,7 +416,7 @@ double sendRequest(key_t key, long msgtype, REQ *r) {
 /**
  * [印出PC Statistic]
  */
-void pcStatistic() {
+void pcStatistics() {
 	printf(COLOR_BB"[PRIZE] Total Block Requests(SSD/HDD):%lu(%lu/%lu)\n"COLOR_N, pcst.totalBlkReq, pcst.ssdBlkReq, pcst.totalBlkReq-pcst.ssdBlkReq);
 	printf(COLOR_BB"[PRIZE] Total User Requests(R/W):     %lu(%lu/%lu)\n"COLOR_N, pcst.totalUserReq, pcst.UserRReq, pcst.totalUserReq-pcst.UserRReq);
 	printf(COLOR_BB"[PRIZE] Total System Requests:        %lu\n"COLOR_N, pcst.totalSysReq);

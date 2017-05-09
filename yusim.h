@@ -10,6 +10,7 @@
 #include "yu_syssim.h"
 #include "yu_ipc.h"
 #include "yu_credit.h"
+#include "yu_statistics.h"
 
 /*DISKSIM INITIALIZATION*/
 void initDisksim();
