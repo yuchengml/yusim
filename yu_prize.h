@@ -7,6 +7,7 @@
 #include "yu_debug.h"
 #include "yu_ipc.h"
 #include "yu_cache.h"
+#include "yu_statistics.h"
 
 	/*系統定義Base Prize*/
 	static double basePrize=0;
@@ -27,8 +28,8 @@
 	//HDD metadata block
 	static METABLOCK *CPN = NULL;
 
-	/*STRUCTURE DRFINITION: PC STATISTIC*/
-	/**[Record prize caching statistic]
+	/*STRUCTURE DRFINITION: PC STATISTICS*/
+	/**[Record prize caching statistics]
 	 * 此紀錄係針對整體系統，無視User個別的紀錄
 	 */
 	typedef struct pcStat {
@@ -43,7 +44,7 @@
 		unsigned long missCount;	//Miss次數
 	} PCSTAT;
 	
-	/*PC STATISTIC*/
+	/*PC STATISTICS*/
 	static PCSTAT pcst = {0,0,0,0,0,0,0,0,0};
 
 	/*GET PRIZE*/
@@ -66,6 +67,6 @@
 	/*SEND REQUEST TO SIMULATOR*/
 	double sendRequest(key_t key, long int msgtype, REQ *r);
 	
-	/*印出PC Statistic*/
-	void pcStatistic();
+	/*印出PC Statistics*/
+	void pcStatistics();
 #endif
