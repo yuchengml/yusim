@@ -5,6 +5,9 @@
 #include "yu_parameter.h"
 #include "yu_structure.h"
 
+	/*USER WEIGHT*/
+	unsigned userWeight[NUM_OF_USER];
+
 	/*USER CREDIT*/
 	static double userCredit[NUM_OF_USER];
 
