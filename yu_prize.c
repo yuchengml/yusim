@@ -39,7 +39,7 @@ double getPrize(unsigned int readCnt, unsigned int writeCnt, unsigned int seqLen
 
 /*UPDATE METADATA BLOCK TABLE */
 /**
- * [更新Metadata Block，未取得最新的Prize值]
+ * [更新Metadata Block，為取得最新的Prize值]
  * @param {METABLOCK*} metablk [欲更新的Metadata Block]
  * @param {REQ*} tmp [Request]
  */
@@ -100,6 +100,8 @@ void metaTableRecord(METABLOCK **metaTable, REQ *tmp) {
 
 	search->prize = getPrize(search->readCnt, search->writeCnt, search->seqLen);
 
+	search->user = tmp->userno;
+
 	search->next = *metaTable;
 	*metaTable = search;
 	
@@ -149,6 +151,50 @@ METABLOCK *metadataSearchByMinPrize(METABLOCK *metaTable) {
 		search = search->next;
 	}
 	//printf("[PRIZE]metadataSearchByMinPrize():Blkno:%lu, Min prize:%lf\n", min->ssd_blkno, min->prize);
+	return min;
+}
+
+METABLOCK *metadataSearchByUser(METABLOCK *metaTable, unsigned long blkno, unsigned userno) {
+	METABLOCK *search = NULL;
+	search = metaTable;
+	if (metaTable == NULL)
+		return NULL;
+	
+	while(search != NULL) {
+		if (search->hdd_blkno == blkno && search->user == userno) {
+			return search;
+		}
+		else
+			search = search->next;
+	}
+	return NULL;
+}
+
+METABLOCK *metadataSearchByUserWithMinPrize(METABLOCK *metaTable, unsigned userno) {
+	METABLOCK *search = NULL, *min;
+	search = metaTable;
+	min = metaTable;
+	if (metaTable == NULL)
+		return NULL;
+	else {
+		//先找出第一個同User Number的Metadata
+		while(search != NULL) {
+			if (search->user == userno) {
+				min = search;
+				break;
+			}
+			search = search->next;
+		}
+	}
+
+	//再比較所有同User Number的Metadata，取帶有最小Prize值的User
+	while(search != NULL) {
+		if (search->prize <= min->prize && search->user == userno) {
+			min = search;
+		}
+		search = search->next;
+	}
+	//printf("[PRIZE]metadataSearchByUserWithMinPrize():Blkno:%lu, Min prize:%lf\n", min->ssd_blkno, min->prize);
 	return min;
 }
 
@@ -202,8 +248,8 @@ double prizeCaching(REQ *tmp) {
 	
 	//(1)確認是否為APN或CPN，更新meta data(r/w count)
 	METABLOCK *search_APN, *search_CPN;
-	search_APN = metadataSearch(APN, tmp->blkno);
-	search_CPN = metadataSearch(CPN, tmp->blkno);
+	search_APN = metadataSearchByUser(APN, tmp->blkno, tmp->userno);
+	search_CPN = metadataSearchByUser(CPN, tmp->blkno, tmp->userno);
 	//(2)若為APN，則更新APN並發出SSDsim request
 	if (search_APN != NULL) {
 		pcst.hitCount++;
@@ -238,7 +284,7 @@ double prizeCaching(REQ *tmp) {
 		if (search_CPN->prize >= MIN_PRIZE) {
 			//(5b)考慮Caching space是否滿足所需空間(BLOCK)，若成立則轉至APN
 			//Cache or Evict 並且發出相對應的SSDsim & HDDsim requests
-			if (insertCACHE(&search_CPN->ssd_blkno, &search_CPN->hdd_blkno, flag) != -1) {
+			if (insertCACHEByUser(&search_CPN->ssd_blkno, &search_CPN->hdd_blkno, flag, tmp->userno) != -1) {
 				//printf("[PRIZE]CACHE  METABLOCK ssd_blkno =%8lu hdd_blkno =%8lu readCnt =%6u writeCnt =%6u seqLen =%3u prize =%3lf\n", search_CPN->ssd_blkno, search_CPN->hdd_blkno, search_CPN->readCnt, search_CPN->writeCnt, search_CPN->seqLen, search_CPN->prize);
 				//CPN to APN
 				if (metaTableConvert(&CPN, &APN, search_CPN) == -1)
@@ -273,7 +319,9 @@ double prizeCaching(REQ *tmp) {
 			}
 			else {//(6b)比較有最小prize的APN，作為取代進cache的對象 
 				METABLOCK *minAPN;
-				minAPN = metadataSearchByMinPrize(APN);
+				minAPN = metadataSearchByUserWithMinPrize(APN, tmp->userno);
+				if (minAPN == NULL)
+					PrintError(-1, "[PRIZE]Something error:No caching space and no victim(minAPN)!");
 				//若欲Cache的CPN的Prize >= The APN with min prize
 				if (search_CPN->prize >= minAPN->prize) {
 					//(7b)更新Base Prize
@@ -282,7 +330,9 @@ double prizeCaching(REQ *tmp) {
 					search_CPN->prize = getPrize(search_CPN->readCnt, search_CPN->writeCnt, search_CPN->seqLen);
 					//(9b)剔除Min APN至CPN
 					SSD_CACHE *evict;
-					evict = evictCACHE(minAPN->hdd_blkno);
+					evict = evictCACHEByUser(minAPN->hdd_blkno, tmp->userno);
+					if (evict == NULL)
+						PrintError(-1, "[PRIZE]Cache eviction error:! Victim not found!");
 					//APN to CPN
 					if (metaTableConvert(&APN, &CPN, minAPN) == -1)
 						PrintError(-1, "[PRIZE]metaTableConvert() error(APN->CPN)");
@@ -308,11 +358,12 @@ double prizeCaching(REQ *tmp) {
 						pcst.dirtyCount++;
 						userst[tmp->userno-1].dirtyCount++;
 					}
+					free(evict);
 					pcst.evictCount++;
 					userst[tmp->userno-1].evictCount++;
 					
 					//Caching
-					if (insertCACHE(&search_CPN->ssd_blkno, &search_CPN->hdd_blkno, flag) != -1) {
+					if (insertCACHEByUser(&search_CPN->ssd_blkno, &search_CPN->hdd_blkno, flag, tmp->userno) != -1) {
 						//printf("[PRIZE]CACHE  METABLOCK ssd_blkno =%8lu hdd_blkno =%8lu readCnt =%6u writeCnt =%6u seqLen =%3u prize =%3lf\n", search_CPN->ssd_blkno, search_CPN->hdd_blkno, search_CPN->readCnt, search_CPN->writeCnt, search_CPN->seqLen, search_CPN->prize);
 						//CPN to APN
 						if (metaTableConvert(&CPN, &APN, search_CPN) == -1)

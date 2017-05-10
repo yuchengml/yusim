@@ -20,6 +20,7 @@
 	    unsigned writeCnt;			//寫入次數
 	    unsigned seqLen;			//根據LBPC定義於SSD Block中，計算有多少pages被存取(目前預設一個block的總page數)
 	    double prize;				//紀錄Prize值
+	    unsigned user;				//User Number for multi users
 	    struct metaBlock *next;		//指向下一個Metadata block
 	} METABLOCK;
 
@@ -49,17 +50,26 @@
 
 	/*GET PRIZE*/
 	double getPrize(unsigned int readCnt, unsigned int writeCnt, unsigned int seqLen);
-	
+
 	/*PRINT METADATA BLOCK TABLE*/
 	void metaTablePrint();
-	/*UPDATE METADATA BLOCK TABLE */
+	/*UPDATE METADATA BLOCK TABLE*/
 	void metaTableUpdate(METABLOCK *metablk, REQ *tmp);
-	/*RECORD METADATA BLOCK TABLE */
+	/*RECORD METADATA BLOCK TABLE*/
 	void metaTableRecord(METABLOCK **metaTable, REQ *tmp);
+	
+	/*****Without ssd logical partition*****/
 	/*SEARCH METADATA BLOCK TABLE*/
 	METABLOCK *metadataSearch(METABLOCK *metaTable, unsigned long blkno);
 	/*SEARCH METADATA BLOCK TABLE FOR MINIMAL PRIZE*/
 	METABLOCK *metadataSearchByMinPrize(METABLOCK *metaTable);
+	
+	/*****With ssd logical partition*****/
+	/*SEARCH METADATA BLOCK TABLE BY USER*/
+	METABLOCK *metadataSearchByUser(METABLOCK *metaTable, unsigned long blkno, unsigned userno);
+	/*SEARCH METADATA BLOCK TABLE FOR USER WITH MINIMAL PRIZE*/
+	METABLOCK *metadataSearchByUserWithMinPrize(METABLOCK *metaTable, unsigned userno);
+
 	/*CONVERT METADATA BLOCK TABLE*/
 	int metaTableConvert(METABLOCK **oriTable, METABLOCK **objTable, METABLOCK *metablk);
 	/*PRIZE CACHING*/

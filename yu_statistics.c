@@ -26,7 +26,7 @@ void initUSERSTAT() {
  * @param {double} time [執行時間，為模擬系統時間]
  */
 void printUSERSTAT(double time) {
-    printf(COLOR_BB"Time=%lf\n"COLOR_N, time);
+    printf(COLOR_BB"[USERSTAT] Scheduling Time=%lf\n"COLOR_N, time);
     unsigned long i;
     for (i = 0; i < NUM_OF_USER; i++) {
         printf(COLOR_BB"[USER_%lu] Total Block Requests(SSD/HDD):%lu(%lu/%lu)\n"COLOR_N, i+1, userst[i].totalBlkReq, userst[i].ssdBlkReq, userst[i].totalBlkReq-userst[i].ssdBlkReq);

@@ -166,6 +166,7 @@ int main(int argc, char *argv[]) {
 
     initDisksim();
     initUSERSTAT();
+    
 
     int i;
     for(i = 0; i < NUM_OF_USER; i++) {
@@ -189,6 +190,14 @@ int main(int argc, char *argv[]) {
     trace = fopen(par[0], "r");
     if (!trace)
         PrintError(-1, "[YUSIM]Input file open error");
+
+    /*GET USER WEIGHT*/
+    unsigned weight = 0;
+    for(i = 0; i < NUM_OF_USER; i++) {
+        fscanf(trace, "%u", &weight);
+        userWeight[i] = weight;
+    }
+    initUserCACHE();
 
     while(!feof(trace)) {
         fscanf(trace, "%lf%u%lu%u%u%u", &tmp->arrivalTime, &tmp->devno, &tmp->blkno, &tmp->reqSize, &tmp->reqFlag, &tmp->userno);
