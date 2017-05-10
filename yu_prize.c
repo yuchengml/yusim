@@ -274,6 +274,8 @@ double prizeCaching(REQ *tmp) {
 			else {//(6b)比較有最小prize的APN，作為取代進cache的對象 
 				METABLOCK *minAPN;
 				minAPN = metadataSearchByMinPrize(APN);
+				if (minAPN == NULL)
+					PrintError(-1, "[PRIZE]Something error:No caching space and no victim(minAPN)!");
 				//若欲Cache的CPN的Prize >= The APN with min prize
 				if (search_CPN->prize >= minAPN->prize) {
 					//(7b)更新Base Prize
