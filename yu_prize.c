@@ -285,6 +285,8 @@ double prizeCaching(REQ *tmp) {
 					//(9b)剔除Min APN至CPN
 					SSD_CACHE *evict;
 					evict = evictCACHE(minAPN->hdd_blkno);
+					if (evict == NULL)
+						PrintError(-1, "[PRIZE]Cache eviction error:! Victim not found!");
 					//APN to CPN
 					if (metaTableConvert(&APN, &CPN, minAPN) == -1)
 						PrintError(-1, "[PRIZE]metaTableConvert() error(APN->CPN)");
