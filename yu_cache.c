@@ -44,7 +44,7 @@ int initUserCACHE() {
  * @param {unsigned long*} ssd_blk [Block Number in SSD Cache]
  * @param {unsigned long*} hdd_blk [Block Number in HDD]
  * @param {int} flag [此次Caching是否修改Caching Block(參考BLOCK_FLAG_XXXX)]
- * @param {unsigned} userno [User number(0-n)]
+ * @param {unsigned} userno [User number(1-n)]
  * @return {int} 0/-1 [FULL(-1) or not(0)]
  */
 int insertCACHEByUser(unsigned long *ssd_blk, unsigned long *hdd_blk, int flag, unsigned userno) {
@@ -140,7 +140,7 @@ int insertCACHEByUser(unsigned long *ssd_blk, unsigned long *hdd_blk, int flag, 
 /**
  * [根據指定的HDD Block Number和User Number進行剔除]
  * @param {unsigned long} hdd_blk [指定欲剔除的Block]
- * @param {unsigned} userno [User number(0-n)]
+ * @param {unsigned} userno [User number(1-n)]
  * @return {SSD_CACHE*} search/NULL [回傳欲剔除的Block Pointer;NULL:未找到]
  */
 SSD_CACHE *evictCACHEByUser(unsigned long hdd_blk, unsigned userno) {
@@ -179,7 +179,7 @@ SSD_CACHE *evictCACHEByUser(unsigned long hdd_blk, unsigned userno) {
 /**
  * [指定HDD Block和User進行搜尋]
  * @param {unsigned long} hdd_blk [指定欲搜尋的Block]
- * @param {unsigned} userno [User number(0-n)]
+ * @param {unsigned} userno [User number(1-n)]
  * @return {SSD_CACHE*} search/NULL [回傳欲搜尋的Block Pointer;NULL:未找到]
  */
 SSD_CACHE *searchCACHEByUser(unsigned long hdd_blk, unsigned userno) {
@@ -200,7 +200,7 @@ SSD_CACHE *searchCACHEByUser(unsigned long hdd_blk, unsigned userno) {
 /*CHECK CACHE FULL BY USER*/
 /**
  * [根據指定的User檢查 User Cache是否已滿]
- * @param {unsigned} userno [User number(0-n)]
+ * @param {unsigned} userno [User number(1-n)]
  * @return CACHE_FULL/CACHE_NOT_FULL [Full:1; Not full:0]
  */
 int isFullCACHEByUser(unsigned userno) {
@@ -214,7 +214,7 @@ int isFullCACHEByUser(unsigned userno) {
 /**
  * [根據User Number取得其User Caching Table中一個Free Block]
  * [注意!!欲取得Free Block前必須注意已檢查是否已滿? 建議流程isFullCACHE()->getFreeCACHE()]
- * @param {unsigned} userno [User number(0-n)]
+ * @param {unsigned} userno [User number(1-n)]
  * @return {unsigned long}  [description]
  */
 unsigned long getFreeCACHEByUser(unsigned userno) {

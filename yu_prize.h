@@ -20,7 +20,7 @@
 	    unsigned writeCnt;			//寫入次數
 	    unsigned seqLen;			//根據LBPC定義於SSD Block中，計算有多少pages被存取(目前預設一個block的總page數)
 	    double prize;				//紀錄Prize值
-	    unsigned user;				//User Number for multi users
+	    unsigned user;				//User Number for multi users //Hint:trace的userno是由1至n
 	    struct metaBlock *next;		//指向下一個Metadata block
 	} METABLOCK;
 
