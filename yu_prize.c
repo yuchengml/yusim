@@ -319,7 +319,7 @@ double prizeCaching(REQ *tmp) {
 			}
 			else {//(6b)比較有最小prize的APN，作為取代進cache的對象 
 				METABLOCK *minAPN;
-				minAPN = metadataSearchByUserWithMinPrize(APN, tmp->userno);
+        minAPN = metadataSearchByUserWithMinPrize(APN, tmp->userno);
 				if (minAPN == NULL)
 					PrintError(-1, "[PRIZE]Something error:No caching space and no victim(minAPN)!");
 				//若欲Cache的CPN的Prize >= The APN with min prize
@@ -330,7 +330,7 @@ double prizeCaching(REQ *tmp) {
 					search_CPN->prize = getPrize(search_CPN->readCnt, search_CPN->writeCnt, search_CPN->seqLen);
 					//(9b)剔除Min APN至CPN
 					SSD_CACHE *evict;
-					evict = evictCACHEByUser(minAPN->hdd_blkno, tmp->userno);
+          evict = evictCACHEByUser(minAPN->hdd_blkno, tmp->userno);
 					if (evict == NULL)
 						PrintError(-1, "[PRIZE]Cache eviction error:! Victim not found!");
 					//APN to CPN
