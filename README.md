@@ -42,14 +42,14 @@ Author: Yu-Cheng Yu ([g1677321@gmail.com](mailto:g1677321@gmail.com))
 >	**_[Request_Arrival_Time] [Device_number] [Block_Number] [Request_Size] [Request_Flag] [User_Number]_**<br>
 >	**_..._**
 
-1.	***[User_Weight]*** : An `Unsigned integer` as "User Weight".
+1.	***[User_Weight]*** : An `unsigned integer` as "User Weight".
 2.	_(Disksim-defined)_ **_[Request_Arrival_Time]_** : `Double`-precision milliseconds.
-3.	_(Disksim-defined)_ **_[Device_number]_** : An `Unsigned integer` as specified device. Consider multi-disk in one device parameter file(e.g., RAID).
+3.	_(Disksim-defined)_ **_[Device_number]_** : An `unsigned integer` as specified device. Consider multi-disk in one device parameter file(e.g., RAID).
 4.	_(Disksim-defined)_ **_[Block_Number]_** : An `unsigned long` as the start of accessed block. Due to address alignment for SSD, it must be a valid number.
 
 5.	_(Disksim-defined)_ **_[Request_Size]_** : An `unsigned integer` as the consecutive length. Due to address alignment for SSD, it must be a valid number.
 6.	_(Disksim-defined)_ **_[Request_Flag]_** : **'1'** assigned as "Read" request and **'0'** assigned as "Write" Request.
-7.	_(Disksim-defined)_ **_[User_Number]_** :  An `Unsigned integer` user number from '1' to 'N'.
+7.	_(Disksim-defined)_ **_[User_Number]_** :  An `unsigned integer` user number from '1' to 'N'.
 
 # Get started
 ## 1. Download Disksim4.0 & Build it!
