@@ -1,4 +1,4 @@
-#Yusim
+# Yusim
 
 Yusim is a simple simulator based on [Disksim](http://www.pdl.cmu.edu/DiskSim/) program. We purposed to invoke two Disksim programs with two sub-processes to implement hybrid storage system.
 
@@ -6,8 +6,7 @@ In current version, we construct two sims(SSDsim and HDDsim) which respectively 
 
 Author: Yu-Cheng Yu ([g1677321@gmail.com](mailto:g1677321@gmail.com))
 
-#Feature
-===
+# Feature
 ## Simulator
 *	Follow Disksim simulation included bus, controller and storage device.
 *	Hybrid communication between SSD(considered as HDD-cache) and HDD should be concerned.
@@ -22,8 +21,7 @@ Author: Yu-Cheng Yu ([g1677321@gmail.com](mailto:g1677321@gmail.com))
 *	SSD Caching/Replacement Policy: **Prize Caching**.
 *	SSD Caching Space: **Logical Partition**.
 
-#Repository contents
-===
+# Repository contents
 1.	**yu_parameter.h:** System-defined parameters. Modification should pass self-validation.
 2.	**yusim.c, .h:** Main interface.
 3.	**yu_syssim.c, .h:** Simulator's behaviors.
@@ -37,29 +35,26 @@ Author: Yu-Cheng Yu ([g1677321@gmail.com](mailto:g1677321@gmail.com))
 11.	**yu_trace.c, .h:** -
 12.	**Makefile:** Modified Disksim version
 
-#Trace Format
-===
->	***[User_Weight_1] [User_Weight_2] [User_Weight_3] ...***<br>
->	***[Request_Arrival_Time] [Device_number] [Block_Number] [Request_Size] [Request_Flag] [User_Number]***<br>
->	***[Request_Arrival_Time] [Device_number] [Block_Number] [Request_Size] [Request_Flag] [User_Number]***<br>
->	***[Request_Arrival_Time] [Device_number] [Block_Number] [Request_Size] [Request_Flag] [User_Number]***<br>
->	***...***
+# Trace Format
+>	**_[User_Weight_1] [User_Weight_2] [User_Weight_3] ..._**<br>
+>	**_[Request_Arrival_Time] [Device_number] [Block_Number] [Request_Size] [Request_Flag] [User_Number]_**<br>
+>	**_[Request_Arrival_Time] [Device_number] [Block_Number] [Request_Size] [Request_Flag] [User_Number]_**<br>
+>	**_[Request_Arrival_Time] [Device_number] [Block_Number] [Request_Size] [Request_Flag] [User_Number]_**<br>
+>	**_..._**
 
 1.	***[User_Weight]*** : An `Unsigned integer` as "User Weight".
-2.	_(Disksim-defined)_ ***[Request_Arrival_Time]*** : `Double`-precision milliseconds.
-3.	_(Disksim-defined)_ ***[Device_number]*** : An `Unsigned integer` as specified device. Consider multi-disk in one device parameter file(e.g., RAID).
-4.	_(Disksim-defined)_ ***[Block_Number]*** : An `unsigned long` as the start of accessed block. Due to address alignment for SSD, it must be a valid number.
+2.	_(Disksim-defined)_ **_[Request_Arrival_Time]_** : `Double`-precision milliseconds.
+3.	_(Disksim-defined)_ **_[Device_number]_** : An `Unsigned integer` as specified device. Consider multi-disk in one device parameter file(e.g., RAID).
+4.	_(Disksim-defined)_ **_[Block_Number]_** : An `unsigned long` as the start of accessed block. Due to address alignment for SSD, it must be a valid number.
 
-5.	_(Disksim-defined)_ ***[Request_Size]*** : An `unsigned integer` as the consecutive length. Due to address alignment for SSD, it must be a valid number.
-6.	_(Disksim-defined)_ ***[Request_Flag]*** : **'1'** assigned as "Read" request and **'0'** assigned as "Write" Request.
-7.	_(Disksim-defined)_ ***[User_Number]*** :  An `Unsigned integer` user number from '1' to 'N'.
+5.	_(Disksim-defined)_ **_[Request_Size]_** : An `unsigned integer` as the consecutive length. Due to address alignment for SSD, it must be a valid number.
+6.	_(Disksim-defined)_ **_[Request_Flag]_** : **'1'** assigned as "Read" request and **'0'** assigned as "Write" Request.
+7.	_(Disksim-defined)_ **_[User_Number]_** :  An `Unsigned integer` user number from '1' to 'N'.
 
-Get started
-========
+# Get started
+## 1. Download Disksim4.0 & Build it!
+*	[Disksim4.0](http://www.pdl.cmu.edu/DiskSim/) with [SSD patch](https://www.microsoft.com/en-us/download/details.aspx?id=52332&from=http%3A%2F%2Fresearch.microsoft.com%2Fresearch%2Fdownloads%2Fdetails%2Fb41019e2-1d2b-44d8-b512-ba35ab814cd4%2Fdetails.aspx)
 
-##1. Download Disksim4.0 & Build it!
-	*	[Disksim4.0](http://www.pdl.cmu.edu/DiskSim/) with [SSD patch](https://www.microsoft.com/en-us/download/details.aspx?id=52332&from=http%3A%2F%2Fresearch.microsoft.com%2Fresearch%2Fdownloads%2Fdetails%2Fb41019e2-1d2b-44d8-b512-ba35ab814cd4%2Fdetails.aspx)
-
-##2. Download Yusim
-##3. Paste all files into source folder
-	*	Path:.../disksim/src
+## 2. Download Yusim
+## 3. Paste all files into source folder
+*	Path:.../disksim/src
