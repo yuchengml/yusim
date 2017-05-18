@@ -238,7 +238,7 @@ void printCACHEByLRUandUsers() {
 	SSD_CACHE *search;
 	unsigned i;
 	for (i = 0; i < NUM_OF_USER; i++) {
-		printf("[USER CACHE]<<<MRU<<<");
+		printf("[USER CACHE %u]<<<MRU<<<", i+1);
 		
 		for (search = userCachingTable[i]; search != NULL; search=search->next) {
 			printf("%lu(%lu) <-> ", search->ssd_blkno, search->hdd_blkno);;
