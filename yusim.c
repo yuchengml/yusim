@@ -164,6 +164,8 @@ int main(int argc, char *argv[]) {
     par[4] = argv[5];
     par[5] = argv[6];
 
+    printParameters();
+
     initDisksim();
     initUSERSTAT();
     
@@ -221,7 +223,7 @@ int main(int argc, char *argv[]) {
 
             /*USER IDENTIFICATION*/
             if(insertQUE(tmp, tmp->userno-1) == -1)
-                PrintError(-1, "[YUSIM]Error user or user queue!\n");
+                PrintError(-1, "[YUSIM]Error user or user queue! insertQUE():");
             /*NEXT TIME PERIOD*/
             //The N-th time period = (int)(tmp->arrivalTime/TIME_PERIOD + 1);N=1~n
             

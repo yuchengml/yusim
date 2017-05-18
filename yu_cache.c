@@ -22,18 +22,18 @@ int initUserCACHE() {
 	if (totalWeight == 0)
 		PrintError(0, "[USER CACHE] Total User Weight = ");
 
-	unsigned long startBlkno = 0;
+	unsigned long startPage = 0;
 	for (i = 0; i < NUM_OF_USER; i++) {
-		userCacheStart[i] = startBlkno;
-		userCacheSize[i] = userWeight[i]*SSD_CACHING_SPACE_BY_BLOCKS/totalWeight;
+		userCacheStart[i] = startPage;
+		userCacheSize[i] = userWeight[i]*SSD_CACHING_SPACE_BY_PAGES/totalWeight;
 		userFreeCount[i] = userCacheSize[i];
-		startBlkno += userCacheSize[i];
+		startPage += userCacheSize[i];
 	}
 	
-	printf(COLOR_GB"[USER CACHE] Total User Weight:%u, Total Cache Size:%u\n"COLOR_N, totalWeight, SSD_CACHING_SPACE_BY_BLOCKS);
+	printf(COLOR_GB"[USER CACHE] Total User Weight:%u, Total Cache Size(Blks):%u\n"COLOR_N, totalWeight, SSD_CACHING_SPACE_BY_PAGES/SSD_PAGES_PER_BLOCK);
 
 	for (i = 0; i < NUM_OF_USER; i++) {
-		printf(COLOR_GB"[USER CACHE] User%u: Weight:%u Start:%lu, Size:%lu\n"COLOR_N, i, userWeight[i], userCacheStart[i], userCacheSize[i]);
+		printf(COLOR_GB"[USER CACHE] User%u: Weight:%u Start(Blks):%lu, Size(Blks):%lu\n"COLOR_N, i, userWeight[i], userCacheStart[i]/SSD_PAGES_PER_BLOCK, userCacheSize[i]/SSD_PAGES_PER_BLOCK);
 	}
 
 	return 0;
@@ -266,15 +266,6 @@ int insertCACHE(unsigned long *ssd_blk, unsigned long *hdd_blk, int flag) {
 			return -1;//FULL
 		else
 			free_blkno = getFreeCACHE();
-		/*
-		int i;
-		for (i = 0; i < SSD_CACHING_SPACE_BY_BLOCKS; i++) {
-			if (cachingSpace[i] == BLOCK_FLAG_FREE)
-				break;
-		}
-		if (i == SSD_CACHING_SPACE_BY_BLOCKS)
-			return -1;//FULL
-		*/
 
 		cachingTable = calloc(1, sizeof(SSD_CACHE));
 		cachingTable->hdd_blkno = *hdd_blk;
@@ -300,15 +291,7 @@ int insertCACHE(unsigned long *ssd_blk, unsigned long *hdd_blk, int flag) {
 			}
 			else
 				free_blkno = getFreeCACHE();
-			/*
-			int i;
-			for (i = 0; i < SSD_CACHING_SPACE_BY_BLOCKS; i++) {
-				if (cachingSpace[i] == BLOCK_FLAG_FREE)
-					break;
-			}
-			if (i == SSD_CACHING_SPACE_BY_BLOCKS)
-				return -1;//FULL
-			*/
+
 			SSD_CACHE *tmp;
 			tmp = calloc(1, sizeof(SSD_CACHE));
 			tmp->hdd_blkno = *hdd_blk;
@@ -465,7 +448,7 @@ int isFullCACHE() {
  */
 unsigned long getFreeCACHE() {
 	unsigned long blkno;
-	for (blkno = 0; blkno < SSD_CACHING_SPACE_BY_BLOCKS; blkno++) {
+	for (blkno = 0; blkno < SSD_CACHING_SPACE_BY_PAGES; blkno++) {
 		if (cachingSpace[blkno] == BLOCK_FLAG_FREE) {
 			//printf("Free Block number:%lu\n", blkno);
 			return blkno;
@@ -486,12 +469,6 @@ void printCACHEByLRU() {
 	for (search = cachingTable; search != NULL; search=search->next) {
 		printf("%lu(%lu) <-> ", search->ssd_blkno, search->hdd_blkno);;
 	}
-	/*
-	int i, count=0;
-	for (i = 0; i < SSD_CACHING_SPACE_BY_BLOCKS; i++) {
-		if (cachingSpace[i] != BLOCK_FLAG_FREE)
-			count++;
-	}
-	*/
-	printf("NULL (%lu)\n", SSD_CACHING_SPACE_BY_BLOCKS-freeCount);
+
+	printf("NULL (%lu)\n", SSD_CACHING_SPACE_BY_PAGES-freeCount);
 }

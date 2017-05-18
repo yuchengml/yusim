@@ -60,7 +60,7 @@ void metaTableUpdate(METABLOCK *metablk, REQ *tmp) {
 	//if (metablk->seqLen < (tmp->reqSize*DISKSIM_SECTOR)/SSD_PAGE_SIZE)
 	//	metablk->seqLen = (tmp->reqSize*DISKSIM_SECTOR)/SSD_PAGE_SIZE;
 	//目前以存取整個SSD Block為單位
-	metablk->seqLen = SSD_BLOCK_SIZE/SSD_PAGE_SIZE;
+	metablk->seqLen = SSD_PAGES_PER_BLOCK;
 
 	metablk->prize = getPrize(metablk->readCnt, metablk->writeCnt, metablk->seqLen);
 
@@ -96,7 +96,7 @@ void metaTableRecord(METABLOCK **metaTable, REQ *tmp) {
 	//tmp->reqSize為多少個Disksim block(512bytes)，因此轉換為byte再轉換SSD page數
 	//search->seqLen = (tmp->reqSize*DISKSIM_SECTOR)/SSD_PAGE_SIZE;
 	//目前以存取整個SSD Block為單位
-	search->seqLen = SSD_BLOCK_SIZE/SSD_PAGE_SIZE;
+	search->seqLen = SSD_PAGES_PER_BLOCK;
 
 	search->prize = getPrize(search->readCnt, search->writeCnt, search->seqLen);
 
@@ -275,7 +275,7 @@ double prizeCaching(REQ *tmp) {
 		REQ *r;
 		r = calloc(1, sizeof(REQ));
 		copyReq(tmp, r);
-		r->blkno = ssdBlk2simSector(search_APN->ssd_blkno);
+		r->blkno = ssdPage2simSector(search_APN->ssd_blkno);
 		response += sendRequest(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1, r);
 		pcst.totalUserReq++;
 		userst[tmp->userno-1].totalUserReq++;
@@ -315,7 +315,7 @@ double prizeCaching(REQ *tmp) {
 					userst[tmp->userno-1].totalUserReq++;
 					//Write SSDsim
 					r->reqFlag = DISKSIM_WRITE;
-					r->blkno = ssdBlk2simSector(search_CPN->ssd_blkno);
+					r->blkno = ssdPage2simSector(search_CPN->ssd_blkno);
 					response += sendRequest(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1, r);
 					pcst.totalSysReq++;
 					userst[tmp->userno-1].totalSysReq++;
@@ -325,7 +325,7 @@ double prizeCaching(REQ *tmp) {
 					REQ *r;
 					r = calloc(1, sizeof(REQ));
 					copyReq(tmp, r);
-					r->blkno = ssdBlk2simSector(search_CPN->ssd_blkno);
+					r->blkno = ssdPage2simSector(search_CPN->ssd_blkno);
 					response += sendRequest(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1, r);
 					pcst.totalUserReq++;
 					userst[tmp->userno-1].totalUserReq++;
@@ -358,7 +358,7 @@ double prizeCaching(REQ *tmp) {
 						r2 = calloc(1, sizeof(REQ));
 						copyReq(tmp, r1);
 						copyReq(tmp, r2);
-						r1->blkno = ssdBlk2simSector(evict->ssd_blkno);
+						r1->blkno = ssdPage2simSector(evict->ssd_blkno);
 						r1->reqFlag = DISKSIM_READ;
 						r2->blkno = evict->hdd_blkno;
 						r2->reqFlag = DISKSIM_WRITE;
@@ -394,7 +394,7 @@ double prizeCaching(REQ *tmp) {
 							userst[tmp->userno-1].totalUserReq++;
 							//Write SSDsim
 							r->reqFlag = DISKSIM_WRITE;
-							r->blkno = ssdBlk2simSector(search_CPN->ssd_blkno);
+							r->blkno = ssdPage2simSector(search_CPN->ssd_blkno);
 							response += sendRequest(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1, r);
 							pcst.totalSysReq++;
 							userst[tmp->userno-1].totalSysReq++;
@@ -404,7 +404,7 @@ double prizeCaching(REQ *tmp) {
 							REQ *r;
 							r = calloc(1, sizeof(REQ));
 							copyReq(tmp, r);
-							r->blkno = ssdBlk2simSector(search_CPN->ssd_blkno);
+							r->blkno = ssdPage2simSector(search_CPN->ssd_blkno);
 							response += sendRequest(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1, r);
 							pcst.totalUserReq++;
 							userst[tmp->userno-1].totalUserReq++;

@@ -47,5 +47,7 @@
 	unsigned long getTotalReqs();
 	/*將SSD Block Number轉成Disksim Block(Sector)*/
 	unsigned long ssdBlk2simSector(unsigned long ssd_blk);
+	/*將SSD Page Number轉成Disksim Block(Sector)*/
+	unsigned long ssdPage2simSector(unsigned long ssd_blk);
 
 #endif

@@ -25,7 +25,7 @@
 	static unsigned long userFreeCount[NUM_OF_USER];
 	/*CACHING SPACE*/
 	//記錄實際的Cache狀態(Dirty, Clean or Free)
-	int userCachingSpace[SSD_CACHING_SPACE_BY_BLOCKS];
+	int userCachingSpace[SSD_CACHING_SPACE_BY_PAGES];
 
 	/*USER CACHE INITIALIZATION*/
 	int initUserCACHE();
@@ -46,10 +46,10 @@
 
 	/*SSD CACHE TABLE*/
 	static SSD_CACHE *cachingTable = NULL;
-	static unsigned long freeCount = SSD_CACHING_SPACE_BY_BLOCKS;
+	static unsigned long freeCount = SSD_CACHING_SPACE_BY_PAGES;
 	/*CACHING SPACE*/
 	//記錄實際的Cache狀態(Dirty, Clean or Free)
-	int cachingSpace[SSD_CACHING_SPACE_BY_BLOCKS];
+	int cachingSpace[SSD_CACHING_SPACE_BY_PAGES];
 
 	/*INSERT CACHE TABLE*/
 	int insertCACHE(unsigned long *ssd_blk, unsigned long *hdd_blk, int reqFlag);

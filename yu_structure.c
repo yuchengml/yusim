@@ -13,22 +13,22 @@ int insertQUE(REQ *r, unsigned userno) {
 	}
 	/*block_count代表此request共存取多少SSD Block*/
 	int block_count;
-	block_count = r->reqSize/SSD_BLOCK2SECTOR;
+	block_count = r->reqSize/SSD_PAGE2SECTOR;
 	int i;
 	for (i = 0; i < block_count; i++) {
 		if (userq[userno].head == NULL) {
 			userq[userno].head = calloc(1, sizeof(USER_QUE_ITEM));
 			userq[userno].tail = userq[userno].head;
 			copyReq(r, &(userq[userno].head->r));
-			userq[userno].head->r.blkno += i*SSD_BLOCK2SECTOR;
-			userq[userno].head->r.reqSize = SSD_BLOCK2SECTOR;
+			userq[userno].head->r.blkno += i*SSD_PAGE2SECTOR;
+			userq[userno].head->r.reqSize = SSD_PAGE2SECTOR;
 		}
 		else {
 			USER_QUE_ITEM *tmp;
 			tmp = calloc(1, sizeof(USER_QUE_ITEM));
 			copyReq(r, &(tmp->r));
-			tmp->r.blkno += i*SSD_BLOCK2SECTOR;
-			tmp->r.reqSize = SSD_BLOCK2SECTOR;
+			tmp->r.blkno += i*SSD_PAGE2SECTOR;
+			tmp->r.reqSize = SSD_PAGE2SECTOR;
 			tmp->front_req = userq[userno].head;
 			userq[userno].head->back_req = tmp;
 			userq[userno].head = tmp;
@@ -118,4 +118,13 @@ unsigned long getTotalReqs() {
  */
 unsigned long ssdBlk2simSector(unsigned long ssd_blk) {
 	return ssd_blk*SSD_BLOCK2SECTOR;
+}
+
+/**
+ * [將SSD Page Number轉成Disksim Block(Sector)]
+ * @param {unsigned long} ssd_blk [SSD Page Number]
+ * @return {unsigned long} - [Block(Sector) Number for SSDsim(Disksim)]
+ */
+unsigned long ssdPage2simSector(unsigned long ssd_blk) {
+	return ssd_blk*SSD_PAGE2SECTOR;
 }

@@ -32,7 +32,7 @@ void traceFile2blkno(FILE *fin) {
     int block_count;
     while(!feof(fin)) {
         fscanf(fin, "%lf%lu%lu%lu%lu%lu", &arrivalTime, &devno, &blkno, &reqSize, &reqFlag, &userno);
-        block_count = reqSize/SSD_BLOCK2SECTOR;
+        block_count = reqSize/SSD_PAGE2SECTOR;
         int i;
         for (i = 0; i < block_count; i++) {
             num++;

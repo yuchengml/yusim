@@ -53,3 +53,20 @@ void writeStatFile(double time, FILE **st) {
         fprintf(*st, "%lu %lf %lf %lf %lf\n", i+1, userst[i].responseTime, (double)userst[i].totalUserReq/time, (double)userst[i].hitCount/(double)(userst[i].hitCount+userst[i].missCount), userst[i].cachingSpace);
     }
 }
+
+/**
+ * [印出yu_parameter.h資訊]
+ */
+void printParameters() {
+    printf("DISKSIM_SECTOR = %u\n", DISKSIM_SECTOR);
+    printf("SSD_PAGE_SIZE = %u\n", SSD_PAGE_SIZE);
+    printf("SSD_PAGE2SECTOR = %u\n", SSD_PAGE2SECTOR);
+    printf("SSD_PAGES_PER_BLOCK = %u\n", SSD_PAGES_PER_BLOCK);
+    printf("SSD_BLOCK_SIZE = %u\n", SSD_BLOCK_SIZE);
+    printf("SSD_BLOCK2SECTOR = %u\n", SSD_BLOCK2SECTOR);
+    printf("HDD_BLOCK_SIZE = %u\n", HDD_BLOCK_SIZE);
+    printf("HDD_BLOCK2SECTOR = %u\n", HDD_BLOCK2SECTOR);
+    printf("TIME_PERIOD = %u\n", TIME_PERIOD);
+    printf("NUM_OF_USER = %u\n", NUM_OF_USER);
+    printf("SSD_CACHING_SPACE_BY_PAGES = %u\n", SSD_CACHING_SPACE_BY_PAGES);
+}

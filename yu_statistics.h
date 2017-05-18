@@ -33,5 +33,7 @@
 	void printUSERSTAT(double time);
 	/*寫檔至 Statistics File*/
 	void writeStatFile(double time, FILE **st);
+	/*印出yu_parameter.h資訊*/
+	void printParameters();
 
 #endif
