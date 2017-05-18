@@ -69,4 +69,5 @@ void printParameters() {
     printf("TIME_PERIOD = %u\n", TIME_PERIOD);
     printf("NUM_OF_USER = %u\n", NUM_OF_USER);
     printf("SSD_CACHING_SPACE_BY_PAGES = %u\n", SSD_CACHING_SPACE_BY_PAGES);
+    printf("SSD_N_ELEMENTS = %u\n", SSD_N_ELEMENTS);
 }

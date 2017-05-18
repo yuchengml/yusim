@@ -4,17 +4,19 @@
 #include <stdlib.h>
 #include "yu_parameter.h"
 #include "yu_structure.h"
+#include "yu_debug.h"
 
 	/*USER WEIGHT*/
 	unsigned userWeight[NUM_OF_USER];
+	unsigned totalWeight;
 
 	/*USER CREDIT*/
 	static double userCredit[NUM_OF_USER];
 
 	/*CREDIT INITIALIZATION*/
-	double creditInit(unsigned userno);
+	int creditInit();
 	/*CREDIT REPLENISHMENT*/
-	double creditReplenish(unsigned userno);
+	int creditReplenish();
 	/*CREDIT CHARGING*/
 	double creditCharge(unsigned userno, double value);
 	/*CREDIT COMPENSATION*/

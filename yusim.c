@@ -132,12 +132,8 @@ void scheduling(double next_timeout) {
             period = floor(scheduleTime / TIME_PERIOD);
             //printf("[YUSIM]creditReplenish()[%lu](%lf)\n", period, scheduleTime);
             
-            unsigned long i;
-            for(i = 0; i < NUM_OF_USER; i++) {
-                /*CREDIT REPLENISHMENT*/
-                creditReplenish(i);
-            }
-            //printCredit();
+            /*CREDIT REPLENISHMENT*/
+            creditReplenish();
             
             /*USER STATISTICS*/
             //記錄實驗數據
@@ -170,14 +166,6 @@ int main(int argc, char *argv[]) {
     initUSERSTAT();
     
 
-    int i;
-    for(i = 0; i < NUM_OF_USER; i++) {
-        creditInit(i);
-    }
-    
-    //printCredit();
-
-    printf("[YUSIM]creditInit() finish!\n");
 
     printf("[YUSIM]Enter to continute ...\n");
     
@@ -194,12 +182,14 @@ int main(int argc, char *argv[]) {
         PrintError(-1, "[YUSIM]Input file open error");
 
     /*GET USER WEIGHT*/
+    int i;
     unsigned weight = 0;
     for(i = 0; i < NUM_OF_USER; i++) {
         fscanf(trace, "%u", &weight);
         userWeight[i] = weight;
     }
     initUserCACHE();
+    creditInit();
 
     while(!feof(trace)) {
         fscanf(trace, "%lf%u%lu%u%u%u", &tmp->arrivalTime, &tmp->devno, &tmp->blkno, &tmp->reqSize, &tmp->reqFlag, &tmp->userno);

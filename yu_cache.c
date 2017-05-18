@@ -13,7 +13,7 @@
  * @return {int} 0/-1 []
  */
 int initUserCACHE() {
-	unsigned totalWeight = 0;
+	totalWeight = 0;
 	unsigned i;
 	for (i = 0; i < NUM_OF_USER; i++) {
 		totalWeight += userWeight[i];
@@ -30,10 +30,10 @@ int initUserCACHE() {
 		startPage += userCacheSize[i];
 	}
 	
-	printf(COLOR_GB"[USER CACHE] Total User Weight:%u, Total Cache Size(Blks):%u\n"COLOR_N, totalWeight, SSD_CACHING_SPACE_BY_PAGES/SSD_PAGES_PER_BLOCK);
+	printf(COLOR_GB" [USER CACHE] Total User Weight:%u, Total Cache Size(Blks):%u\n"COLOR_N, totalWeight, SSD_CACHING_SPACE_BY_PAGES/SSD_PAGES_PER_BLOCK);
 
 	for (i = 0; i < NUM_OF_USER; i++) {
-		printf(COLOR_GB"[USER CACHE] User%u: Weight:%u Start(Blks):%lu, Size(Blks):%lu\n"COLOR_N, i, userWeight[i], userCacheStart[i]/SSD_PAGES_PER_BLOCK, userCacheSize[i]/SSD_PAGES_PER_BLOCK);
+		printf(COLOR_GB" [USER CACHE] User%u: Weight:%u Start(Blks):%lu, Size(Blks):%lu\n"COLOR_N, i, userWeight[i], userCacheStart[i]/SSD_PAGES_PER_BLOCK, userCacheSize[i]/SSD_PAGES_PER_BLOCK);
 	}
 
 	return 0;

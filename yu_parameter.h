@@ -13,10 +13,12 @@
 	#define HDD_BLOCK_SIZE   SSD_BLOCK_SIZE //(bytes)
 	#define HDD_BLOCK2SECTOR (HDD_BLOCK_SIZE/DISKSIM_SECTOR)
 
-	#define TIME_PERIOD 3000
-	#define NUM_OF_USER 1 //Hint:trace的userno是由1至n
+	#define TIME_PERIOD 1000 //VSSD uses 1000.0
+	#define NUM_OF_USER 2 //Hint:trace的userno是由1至n
 	
 	#define SSD_CACHING_SPACE_BY_PAGES (6156008/SSD_PAGE2SECTOR)
+	
+	#define SSD_N_ELEMENTS 8 //考慮移除:credit太大 //SSD Channels
 
 
 	/*ipc*/
@@ -30,7 +32,6 @@
 	#define MSG_REQUEST_CONTROL_FLAG_FINISH 999
 
 	/*structure*/
-	
 
 	/*cache*/
 	#define BLOCK_FLAG_FREE 0
@@ -44,7 +45,7 @@
 	#define ALPHA 0.7
 	
 	/*credit*/
-	#define INIT_CREDIT 1000
+	#define INIT_CREDIT (TIME_PERIOD*SSD_N_ELEMENTS)
 	//#define ADD_CREDIT 100
 
 	/*Others*/

@@ -1,24 +1,49 @@
 #include "yu_credit.h"
 
 /*CREDIT INITIALIZATION*/
-/**[初始化Credit，根據User number]
- * @param {unsigned} userno [User number(0-n)]
- * @return {double} userCredit [Modified user credit]
+/**[針對所有Users初始化Credit]
+ * @return {int} 0/-1 [success/fail]
  */
-double creditInit(unsigned userno) {
-    userCredit[userno] = INIT_CREDIT;
-    return userCredit[userno];
+int creditInit() {
+    if (totalWeight == 0) {
+        PrintError(totalWeight, "[CREDIT]You need to call initUserCACHE() first due to error totalWeight = ");
+        return -1;
+    }
+
+    int i;
+    for(i = 0; i < NUM_OF_USER; i++) {
+        userCredit[i] = INIT_CREDIT * ((double)userWeight[i]/totalWeight);
+    }
+
+    printCredit();
+    printf(COLOR_GB" [CREDIT]creditInit() finish!\n"COLOR_N);
+    return 0;
 }
 
 /*CREDIT REPLENISHMENT*/
 /**
- * [補充Credit，根據User number]
- * @param {unsigned} userno [User number(0-n)]
- * @return {double} userCredit [Modified user credit]
+ * [針對所有Users補充Credit]
+ * @return {int} 0/-1 [success/fail]
  */
-double creditReplenish(unsigned userno) {
-    userCredit[userno] = INIT_CREDIT;
-    return userCredit[userno];
+int creditReplenish(unsigned userno) {
+    if (totalWeight == 0) {
+        PrintError(totalWeight, "[CREDIT]Error totalWeight = ");
+        return -1;
+    }
+    
+    int i;
+    for(i = 0; i < NUM_OF_USER; i++) {
+        if (userCredit[i] < 0){
+            printf("userCredit<0");
+            userCredit[i] += INIT_CREDIT * ((double)userWeight[i]/totalWeight); //"+=" 考慮上次可能為負
+        }
+        else
+            userCredit[i] = INIT_CREDIT * ((double)userWeight[i]/totalWeight);
+    }
+    
+    //printCredit();
+    //printf(COLOR_GB" [CREDIT]creditReplenish() finish!\n"COLOR_N);
+    return 0;
 }
 
 /*CREDIT CHARGING*/
@@ -95,6 +120,6 @@ int creditScheduler(USER_QUE user[]) {
 void printCredit() {
     int i;
     for(i = 0; i < NUM_OF_USER; i++) {
-        printf(COLOR_GB"  [CREDIT]USER_CREDIT_%u:%lf\n"COLOR_N, i, userCredit[i]);
+        printf(COLOR_GB" [CREDIT]USER_CREDIT_%u:%lf\n"COLOR_N, i, userCredit[i]);
     }
 }
