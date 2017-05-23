@@ -14,8 +14,7 @@
 
 	/*STRUCTURE DRFINITION: METADATA BLOCK*/
 	typedef struct metaBlock {
-	    unsigned long ssd_blkno;	//以SSD的Block為單位(注意!!有別於DISKSIM的Block大小512bytes)
-	    unsigned long hdd_blkno;	//以SSD的Block為單位(注意!!有別於DISKSIM的Block大小512bytes)
+	    unsigned long blkno;		//以SSD Block size的Block number
 	    unsigned readCnt;			//讀取次數
 	    unsigned writeCnt;			//寫入次數
 	    unsigned seqLen;			//循序存取機會。根據LBPC定義於SSD Block中，計算有多少pages被存取(目前預設一個block的總page數)
@@ -24,10 +23,8 @@
 	    struct metaBlock *next;		//指向下一個Metadata block
 	} METABLOCK;
 
-	//SSD metadata block
-	static METABLOCK *APN = NULL;
-	//HDD metadata block
-	static METABLOCK *CPN = NULL;
+	//Metadata block table
+	static METABLOCK *metaTable = NULL;
 
 	/*STRUCTURE DRFINITION: PC STATISTICS*/
 	/**[Record prize caching statistics]
@@ -56,22 +53,14 @@
 	/*UPDATE METADATA BLOCK TABLE*/
 	void metaTableUpdate(METABLOCK *metablk, REQ *tmp);
 	/*RECORD METADATA BLOCK TABLE*/
-	void metaTableRecord(METABLOCK **metaTable, REQ *tmp);
-	
-	/*****Without ssd logical partition*****/
-	/*SEARCH METADATA BLOCK TABLE*/
-	METABLOCK *metadataSearch(METABLOCK *metaTable, unsigned long blkno);
-	/*SEARCH METADATA BLOCK TABLE FOR MINIMAL PRIZE*/
-	METABLOCK *metadataSearchByMinPrize(METABLOCK *metaTable);
-	
+	METABLOCK *metaTableRecord(REQ *tmp);
+
 	/*****With ssd logical partition*****/
 	/*SEARCH METADATA BLOCK TABLE BY USER*/
-	METABLOCK *metadataSearchByUser(METABLOCK *metaTable, unsigned long blkno, unsigned userno);
+	METABLOCK *metadataSearchByUser(unsigned long diskBlk, unsigned userno);
 	/*SEARCH METADATA BLOCK TABLE FOR USER WITH MINIMAL PRIZE*/
-	METABLOCK *metadataSearchByUserWithMinPrize(METABLOCK *metaTable, unsigned userno);
+	METABLOCK *metadataSearchByUserWithMinPrize(unsigned userno);
 
-	/*CONVERT METADATA BLOCK TABLE*/
-	int metaTableConvert(METABLOCK **oriTable, METABLOCK **objTable, METABLOCK *metablk);
 	/*PRIZE CACHING*/
 	double prizeCaching(REQ *tmp);
 	/*SEND REQUEST TO SIMULATOR*/

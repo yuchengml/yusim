@@ -2,7 +2,7 @@
 
 /*USER QUEUE INSERTION*/
 /**
- * [放進User Queue並轉換以Block為單位的requests]
+ * [放進User Queue並轉換以Page為單位的requests]
  * @param {REQ*} r [Yusim-defined request pointer]
  * @param {unsigned} userno [User number]
  * @return {int} 0/-1 [Error flag(True or False)]
@@ -11,23 +11,23 @@ int insertQUE(REQ *r, unsigned userno) {
 	if (userno > NUM_OF_USER-1) {
 		return -1;
 	}
-	/*block_count代表此request共存取多少SSD Block*/
-	int block_count;
-	block_count = r->reqSize/SSD_PAGE2SECTOR;
+	/*page_count代表此request共存取多少SSD Block*/
+	int page_count;
+	page_count = r->reqSize/SSD_PAGE2SECTOR;
 	int i;
-	for (i = 0; i < block_count; i++) {
+	for (i = 0; i < page_count; i++) {
 		if (userq[userno].head == NULL) {
 			userq[userno].head = calloc(1, sizeof(USER_QUE_ITEM));
 			userq[userno].tail = userq[userno].head;
 			copyReq(r, &(userq[userno].head->r));
-			userq[userno].head->r.blkno += i*SSD_PAGE2SECTOR;
+			userq[userno].head->r.diskBlkno += i*SSD_PAGE2SECTOR;
 			userq[userno].head->r.reqSize = SSD_PAGE2SECTOR;
 		}
 		else {
 			USER_QUE_ITEM *tmp;
 			tmp = calloc(1, sizeof(USER_QUE_ITEM));
 			copyReq(r, &(tmp->r));
-			tmp->r.blkno += i*SSD_PAGE2SECTOR;
+			tmp->r.diskBlkno += i*SSD_PAGE2SECTOR;
 			tmp->r.reqSize = SSD_PAGE2SECTOR;
 			tmp->front_req = userq[userno].head;
 			userq[userno].head->back_req = tmp;
@@ -81,7 +81,7 @@ void printQUE() {
 		printf("[USER QUEUE][%d]<<<", i);
 		while (tmp != NULL) {
 			count++;
-			printf("%6lu <-> ", tmp->r.blkno);
+			printf("%6lu <-> ", tmp->r.diskBlkno);
 			tmp = tmp->back_req;
 		}
 		printf("NULL (%u)\n", count);
@@ -96,7 +96,7 @@ void printQUE() {
 void copyReq(REQ *r, REQ *copy) {
 	copy->arrivalTime = r->arrivalTime;
 	copy->devno = r->devno;
-	copy->blkno = r->blkno;
+	copy->diskBlkno = r->diskBlkno;
 	copy->reqSize = r->reqSize;
 	copy->reqFlag = r->reqFlag;
 	copy->userno = r->userno;
@@ -112,19 +112,10 @@ unsigned long getTotalReqs() {
 }
 
 /**
- * [將SSD Block Number轉成Disksim Block(Sector)]
- * @param {unsigned long} ssd_blk [SSD Block Number]
- * @return {unsigned long} - [Block(Sector) Number for SSDsim(Disksim)]
- */
-unsigned long ssdBlk2simSector(unsigned long ssd_blk) {
-	return ssd_blk*SSD_BLOCK2SECTOR;
-}
-
-/**
  * [將SSD Page Number轉成Disksim Block(Sector)]
- * @param {unsigned long} ssd_blk [SSD Page Number]
+ * @param {unsigned long} ssdPageno [SSD Page Number]
  * @return {unsigned long} - [Block(Sector) Number for SSDsim(Disksim)]
  */
-unsigned long ssdPage2simSector(unsigned long ssd_blk) {
-	return ssd_blk*SSD_PAGE2SECTOR;
+unsigned long ssdPage2simSector(unsigned long ssdPageno) {
+	return ssdPageno*SSD_PAGE2SECTOR;
 }

@@ -16,7 +16,7 @@
 		unsigned long UserRReq;		//User Read Request數量
 		unsigned long totalSysReq;	//System Request數量
 		unsigned long evictCount;	//Eviction次數
-		unsigned long dirtyCount;	//Dirty Block Eviction次數
+		unsigned long dirtyCount;	//Dirty Page Eviction次數
 		unsigned long hitCount;		//Hit次數
 		unsigned long missCount;	//Miss次數
 		double responseTime;		//Response time for users

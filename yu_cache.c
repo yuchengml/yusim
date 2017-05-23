@@ -1,7 +1,7 @@
 #include "yu_cache.h"
 /**
  * 此檔案為維護本系統之Caching機制，根據Hybrid Storage System設定，將SSD視為HDD之Cache，
- * 因此，Caching Table須同時記錄Data(Block)位於SSD的位址(ssd_blk)和HDD的位址(hdd_blk)，以
+ * 因此，Caching Table須同時記錄Data(Block)位於SSD的位址(ssd_blk)和HDD的位址(diskBlk)，以
  * 以確保Caching機制的正確性。
  */
 
@@ -30,10 +30,10 @@ int initUserCACHE() {
 		startPage += userCacheSize[i];
 	}
 	
-	printf(COLOR_GB" [USER CACHE] Total User Weight:%u, Total Cache Size(Blks):%u\n"COLOR_N, totalWeight, SSD_CACHING_SPACE_BY_PAGES/SSD_PAGES_PER_BLOCK);
+	printf(COLOR_GB" [USER CACHE] Total User Weight:%u, Total Cache Size(Pages):%u\n"COLOR_N, totalWeight, SSD_CACHING_SPACE_BY_PAGES);
 
 	for (i = 0; i < NUM_OF_USER; i++) {
-		printf(COLOR_GB" [USER CACHE] User%u: Weight:%u Start(Blks):%lu, Size(Blks):%lu\n"COLOR_N, i, userWeight[i], userCacheStart[i]/SSD_PAGES_PER_BLOCK, userCacheSize[i]/SSD_PAGES_PER_BLOCK);
+		printf(COLOR_GB" [USER CACHE] User%u: Weight:%u Start(Pages):%lu, Size(Pages):%lu\n"COLOR_N, i, userWeight[i], userCacheStart[i], userCacheSize[i]);
 	}
 
 	return 0;
@@ -41,49 +41,47 @@ int initUserCACHE() {
 /*INSERT CACHE TABLE BY USER*/
 /**
  * [針對指定User插入(新增)Caching Block至 User Caching Table]
- * @param {unsigned long*} ssd_blk [Block Number in SSD Cache]
- * @param {unsigned long*} hdd_blk [Block Number in HDD]
- * @param {int} flag [此次Caching是否修改Caching Block(參考BLOCK_FLAG_XXXX)]
+ * @param {unsigned long*} diskBlk [Block Number in HDD]
+ * @param {int} flag [此次Caching是否修改Caching Block(參考PAGE_FLAG_XXXX)]
  * @param {unsigned} userno [User number(1-n)]
  * @return {int} 0/-1 [FULL(-1) or not(0)]
  */
-int insertCACHEByUser(unsigned long *ssd_blk, unsigned long *hdd_blk, int flag, unsigned userno) {
+int insertCACHEByUser(unsigned long *diskBlk, int flag, unsigned userno) {
 	//新增Caching Table中第一筆資料(Table為空)
 	if (userCachingTable[userno-1] == NULL) {
-		unsigned long free_blkno;
+		unsigned long freePage;
 		if (isFullCACHEByUser(userno))
 			return -1;//FULL
 		else
-			free_blkno = getFreeCACHEByUser(userno);
+			freePage = getFreeCACHEByUser(userno);
 
 		userCachingTable[userno-1] = calloc(1, sizeof(SSD_CACHE));
-		userCachingTable[userno-1]->hdd_blkno = *hdd_blk;
+		userCachingTable[userno-1]->diskBlkno = *diskBlk;
 		userCachingTable[userno-1]->dirtyFlag = flag;
 		userCachingTable[userno-1]->pre = NULL;
 		userCachingTable[userno-1]->next = NULL;
 		
-		userCachingTable[userno-1]->ssd_blkno = free_blkno;
-		*ssd_blk = free_blkno;
-		userCachingSpace[free_blkno] = flag;
+		userCachingTable[userno-1]->pageno = freePage;
+		userCachingSpace[freePage] = flag;
 		userFreeCount[userno-1]--;
-		//printf("cache first %lu\n", free_blkno);
+		//printf("cache first %lu\n", freePage);
 	}
 	else {//新增或更新Caching Table中某筆資料
 		SSD_CACHE *search;
-		search = searchCACHE(*hdd_blk);
+		search = searchCACHEByUser(*diskBlk, userno);
 
 		//新增一筆資料
 		if (search == NULL) {
-			unsigned long free_blkno;
+			unsigned long freePage;
 			if (isFullCACHEByUser(userno)){
 				return -1;//FULL
 			}
 			else
-				free_blkno = getFreeCACHEByUser(userno);
+				freePage = getFreeCACHEByUser(userno);
 
 			SSD_CACHE *tmp;
 			tmp = calloc(1, sizeof(SSD_CACHE));
-			tmp->hdd_blkno = *hdd_blk;
+			tmp->diskBlkno = *diskBlk;
 			tmp->dirtyFlag = flag;
 
 			userCachingTable[userno-1]->pre = tmp;
@@ -91,20 +89,19 @@ int insertCACHEByUser(unsigned long *ssd_blk, unsigned long *hdd_blk, int flag, 
 			tmp->pre = NULL;
 			userCachingTable[userno-1] = userCachingTable[userno-1]->pre;
 
-			tmp->ssd_blkno = free_blkno;
-			*ssd_blk = free_blkno;
-			userCachingSpace[free_blkno] = flag;
+			tmp->pageno = freePage;
+			userCachingSpace[freePage] = flag;
 			userFreeCount[userno-1]--;
-			//printf("cache head %lu\n", free_blkno);
+			//printf("cache head %lu\n", freePage);
 		}
 		else {//更新一筆資料
 			//更新此次存取的Block Flag
 			switch (flag) {
-				case BLOCK_FLAG_CLEAN:
+				case PAGE_FLAG_CLEAN:
 					//Dirty still dirty...
 					break;
-				case BLOCK_FLAG_DIRTY:
-					userCachingSpace[search->ssd_blkno] = flag;
+				case PAGE_FLAG_DIRTY:
+					userCachingSpace[search->pageno] = flag;
 					break;
 				default:
 					PrintError(flag, "[USER CACHE]Caching Error with unknown flag:");
@@ -133,43 +130,49 @@ int insertCACHEByUser(unsigned long *ssd_blk, unsigned long *hdd_blk, int flag, 
 			}
 		}
 	}
+	//Update user statistics:caching space
+	userst[userno-1].cachingSpace = ((double)userCacheSize[userno-1] - (double)userFreeCount[userno-1])/SSD_CACHING_SPACE_BY_PAGES;
+	
+	//printCACHEByLRUandUsers();
 	return 0;
 }
 
-/*CACHE EVICTION POLICY:SPECIFIC HDD Block and User*/
+/*CACHE EVICTION POLICY:SPECIFIC Block and User*/
 /**
  * [根據指定的HDD Block Number和User Number進行剔除]
- * @param {unsigned long} hdd_blk [指定欲剔除的Block]
+ * @param {unsigned long} diskBlk [指定欲剔除的Block(disksim格式)]
  * @param {unsigned} userno [User number(1-n)]
  * @return {SSD_CACHE*} search/NULL [回傳欲剔除的Block Pointer;NULL:未找到]
  */
-SSD_CACHE *evictCACHEByUser(unsigned long hdd_blk, unsigned userno) {
+SSD_CACHE *evictCACHEFromLRUByUser(unsigned long diskBlk, unsigned userno) {
+	//printCACHEByLRUandUsers();
 	SSD_CACHE *search = NULL;
-	search = userCachingTable[userno-1];
-	//Caching Table的第一個Block為Victim
-	if (search->hdd_blkno == hdd_blk) {
-		userCachingSpace[search->ssd_blkno] = BLOCK_FLAG_FREE;
-		userFreeCount[userno-1]++;
-		search->next->pre = NULL;
-		userCachingTable[userno-1] = userCachingTable[userno-1]->next;
-		//free(search);
-		return search;
-		//return NULL;
+	for (search = userCachingTable[userno-1]; search->next != NULL; search=search->next) {
+		;//Move pointer to LRU
 	}
-	else {
-		SSD_CACHE *tmp = NULL;
-		for (search = userCachingTable[userno-1]; search->next != NULL; search=search->next) {
-			if (search->next->hdd_blkno == hdd_blk){
-				tmp = search->next;
-				userCachingSpace[search->next->ssd_blkno] = BLOCK_FLAG_FREE;
-				userFreeCount[userno-1]++;
-				search->next = tmp->next;
-				if (tmp->next != NULL) 
-					tmp->next->pre = search;
-				//free(tmp);
-				return tmp;
-				//return NULL;
+
+	for (; search != NULL; search=search->pre) {
+		//所屬同一個Block的Page
+		if (search->diskBlkno/(SSD_PAGE2SECTOR*SSD_PAGES_PER_BLOCK) == diskBlk) {
+			userCachingSpace[search->pageno] = PAGE_FLAG_FREE;
+			userFreeCount[userno-1]++;
+			if (search->next != NULL) {
+				if (search->pre != NULL) {
+					search->pre->next = search->next;
+					search->next->pre = search->pre;
+				}
+				else
+					userCachingTable[userno-1] = search->next;
 			}
+			else {
+				if (search->pre != NULL)
+					search->pre->next = NULL;
+				else
+					userCachingTable[userno-1] = NULL;
+			}
+			search->next = NULL;
+			search->pre = NULL;
+			return search;
 		}
 	}
 	return NULL;
@@ -177,17 +180,17 @@ SSD_CACHE *evictCACHEByUser(unsigned long hdd_blk, unsigned userno) {
 
 /*SEARCH CACHE BY USER*/
 /**
- * [指定HDD Block和User進行搜尋]
- * @param {unsigned long} hdd_blk [指定欲搜尋的Block]
+ * [指定HDD Block(disksim格式)和User進行搜尋]
+ * @param {unsigned long} diskBlk [指定欲搜尋的Block(disksim格式)]
  * @param {unsigned} userno [User number(1-n)]
  * @return {SSD_CACHE*} search/NULL [回傳欲搜尋的Block Pointer;NULL:未找到]
  */
-SSD_CACHE *searchCACHEByUser(unsigned long hdd_blk, unsigned userno) {
+SSD_CACHE *searchCACHEByUser(unsigned long diskBlk, unsigned userno) {
 	SSD_CACHE *search;
 	search = userCachingTable[userno-1];
 
 	while(search != NULL) {
-		if (search->hdd_blkno == hdd_blk) {
+		if (search->diskBlkno == diskBlk) {
 			return search;
 		}
 		else
@@ -212,22 +215,22 @@ int isFullCACHEByUser(unsigned userno) {
 
 /*GET FREE CACHE BY USER*/
 /**
- * [根據User Number取得其User Caching Table中一個Free Block]
- * [注意!!欲取得Free Block前必須注意已檢查是否已滿? 建議流程isFullCACHE()->getFreeCACHE()]
+ * [根據User Number取得其User Caching Table中一個Free Page]
+ * [注意!!欲取得Free Page前必須注意已檢查是否已滿? 建議流程isFullCACHE()->getFreeCACHE()]
  * @param {unsigned} userno [User number(1-n)]
- * @return {unsigned long}  [description]
+ * @return {unsigned long} pageno [Page Number]
  */
 unsigned long getFreeCACHEByUser(unsigned userno) {
-	unsigned long blkno;
-	for (blkno = userCacheStart[userno-1]; blkno < userCacheStart[userno-1]+userCacheSize[userno-1]; blkno++) {
-		if (userCachingSpace[blkno] == BLOCK_FLAG_FREE) {
-			//printf("Free Block number:%lu\n", blkno);
-			return blkno;
+	unsigned long pageno;
+	for (pageno = userCacheStart[userno-1]; pageno < userCacheStart[userno-1]+userCacheSize[userno-1]; pageno++) {
+		if (userCachingSpace[pageno] == PAGE_FLAG_FREE) {
+			//printf("Free Page number:%lu\n", pageno);
+			return pageno;
 		}
 	}
-	PrintError(-1, "[USER CACHE]Get an invalid free block number in User Cache");
-	//If return this means "NO FREE BLOCK"!
-	return blkno;
+	PrintError(-1, "[USER CACHE]Get an invalid free Page number in User Cache");
+	//If return this means "NO FREE PAGE"!
+	return pageno;
 }
 
 /*CACHING TABLE OUTPUT*/
@@ -241,7 +244,7 @@ void printCACHEByLRUandUsers() {
 		printf("[USER CACHE %u]<<<MRU<<<", i+1);
 		
 		for (search = userCachingTable[i]; search != NULL; search=search->next) {
-			printf("%lu(%lu) <-> ", search->ssd_blkno, search->hdd_blkno);;
+			printf("%lu(%lu) <-> ", search->pageno, search->diskBlkno);;
 		}
 
 		printf("NULL (%lu)\n", userCacheSize[i]-userFreeCount[i]);
@@ -253,48 +256,46 @@ void printCACHEByLRUandUsers() {
 /*INSERT CACHE TABLE*/
 /**
  * [插入(新增)Caching Block至Caching Table]
- * @param {unsigned long*} ssd_blk [Block Number in SSD Cache]
- * @param {unsigned long*} hdd_blk [Block Number in HDD]
- * @param {int} flag [此次Caching是否修改Caching Block(參考BLOCK_FLAG_XXXX)]
+ * @param {unsigned long*} diskBlk [Block Number(disksim格式) in HDD]
+ * @param {int} flag [此次Caching是否修改Caching Block(參考PAGE_FLAG_XXXX)]
  * @return {int} 0/-1 [FULL(-1) or not(0)]
  */
-int insertCACHE(unsigned long *ssd_blk, unsigned long *hdd_blk, int flag) {
+int insertCACHE(unsigned long *diskBlk, int flag) {
 	//新增Caching Table中第一筆資料(Table為空)
 	if (cachingTable == NULL) {
-		unsigned long free_blkno;
+		unsigned long freePage;
 		if (isFullCACHE())
 			return -1;//FULL
 		else
-			free_blkno = getFreeCACHE();
+			freePage = getFreeCACHE();
 
 		cachingTable = calloc(1, sizeof(SSD_CACHE));
-		cachingTable->hdd_blkno = *hdd_blk;
+		cachingTable->diskBlkno = *diskBlk;
 		cachingTable->dirtyFlag = flag;
 		cachingTable->pre = NULL;
 		cachingTable->next = NULL;
 		
-		cachingTable->ssd_blkno = free_blkno;
-		*ssd_blk = free_blkno;
-		cachingSpace[free_blkno] = flag;
+		cachingTable->pageno = freePage;
+		cachingSpace[freePage] = flag;
 		freeCount--;
-		//printf("cache first %lu\n", free_blkno);
+		//printf("cache first %lu\n", freePage);
 	}
 	else {//新增或更新Caching Table中某筆資料
 		SSD_CACHE *search;
-		search = searchCACHE(*hdd_blk);
+		search = searchCACHE(*diskBlk);
 
 		//新增一筆資料
 		if (search == NULL) {
-			unsigned long free_blkno;
+			unsigned long freePage;
 			if (isFullCACHE()){
 				return -1;//FULL
 			}
 			else
-				free_blkno = getFreeCACHE();
+				freePage = getFreeCACHE();
 
 			SSD_CACHE *tmp;
 			tmp = calloc(1, sizeof(SSD_CACHE));
-			tmp->hdd_blkno = *hdd_blk;
+			tmp->diskBlkno = *diskBlk;
 			tmp->dirtyFlag = flag;
 
 			cachingTable->pre = tmp;
@@ -302,20 +303,19 @@ int insertCACHE(unsigned long *ssd_blk, unsigned long *hdd_blk, int flag) {
 			tmp->pre = NULL;
 			cachingTable = cachingTable->pre;
 
-			tmp->ssd_blkno = free_blkno;
-			*ssd_blk = free_blkno;
-			cachingSpace[free_blkno] = flag;
+			tmp->pageno = freePage;
+			cachingSpace[freePage] = flag;
 			freeCount--;
-			//printf("cache head %lu\n", free_blkno);
+			//printf("cache head %lu\n", freePage);
 		}
 		else {//更新一筆資料
 			//更新此次存取的Block Flag
 			switch (flag) {
-				case BLOCK_FLAG_CLEAN:
+				case PAGE_FLAG_CLEAN:
 					//Dirty still dirty...
 					break;
-				case BLOCK_FLAG_DIRTY:
-					cachingSpace[search->ssd_blkno] = flag;
+				case PAGE_FLAG_DIRTY:
+					cachingSpace[search->pageno] = flag;
 					break;
 				default:
 					PrintError(flag, "[CACHE]Caching Error with unknown flag:");
@@ -357,8 +357,8 @@ SSD_CACHE *evictCACHEByLRU() {
 	for (search = cachingTable; search->next != NULL; search=search->next) {
 		;
 	}
-	//printf("evict %lu ", search->ssd_blkno);
-	cachingSpace[search->ssd_blkno] = BLOCK_FLAG_FREE;
+	//printf("evict %lu ", search->pageno);
+	cachingSpace[search->pageno] = PAGE_FLAG_FREE;
 	freeCount++;
 	search->pre->next = NULL;
 	//printCACHEByLRU();
@@ -372,16 +372,16 @@ SSD_CACHE *evictCACHEByLRU() {
 
 /*CACHE EVICTION POLICY:SPECIFIC HDD Block*/
 /**
- * [根據指定的HDD Block Number進行剔除]
- * @param {unsigned long} hdd_blk [指定欲剔除的Block]
+ * [根據指定的HDD Block Number(disksim格式)進行剔除]
+ * @param {unsigned long} diskBlk [指定欲剔除的Block(disksim格式)]
  * @return {SSD_CACHE*} search/NULL [回傳欲剔除的Block Pointer;NULL:未找到]
  */
-SSD_CACHE *evictCACHE(unsigned long hdd_blk) {
+SSD_CACHE *evictCACHE(unsigned long diskBlk) {
 	SSD_CACHE *search = NULL;
 	search = cachingTable;
 	//Caching Table的第一個Block為Victim
-	if (search->hdd_blkno == hdd_blk) {
-		cachingSpace[search->ssd_blkno] = BLOCK_FLAG_FREE;
+	if (search->diskBlkno == diskBlk) {
+		cachingSpace[search->pageno] = PAGE_FLAG_FREE;
 		freeCount++;
 		search->next->pre = NULL;
 		cachingTable = cachingTable->next;
@@ -392,9 +392,9 @@ SSD_CACHE *evictCACHE(unsigned long hdd_blk) {
 	else {
 		SSD_CACHE *tmp = NULL;
 		for (search = cachingTable; search->next != NULL; search=search->next) {
-			if (search->next->hdd_blkno == hdd_blk){
+			if (search->next->diskBlkno == diskBlk){
 				tmp = search->next;
-				cachingSpace[search->next->ssd_blkno] = BLOCK_FLAG_FREE;
+				cachingSpace[search->next->pageno] = PAGE_FLAG_FREE;
 				freeCount++;
 				search->next = tmp->next;
 				if (tmp->next != NULL) 
@@ -410,16 +410,16 @@ SSD_CACHE *evictCACHE(unsigned long hdd_blk) {
 
 /*SEARCH CACHE*/
 /**
- * [指定HDD Block進行搜尋]
- * @param {unsigned long} hdd_blk [指定欲搜尋的Block]
+ * [指定HDD Block(disksim格式)進行搜尋]
+ * @param {unsigned long} diskBlk [指定欲搜尋的Block(disksim格式)]
  * @return {SSD_CACHE*} search/NULL [回傳欲搜尋的Block Pointer;NULL:未找到]
  */
-SSD_CACHE *searchCACHE(unsigned long hdd_blk) {
+SSD_CACHE *searchCACHE(unsigned long diskBlk) {
 	SSD_CACHE *search;
 	search = cachingTable;
 
 	while(search != NULL) {
-		if (search->hdd_blkno == hdd_blk) {
+		if (search->diskBlkno == diskBlk) {
 			return search;
 		}
 		else
@@ -442,21 +442,21 @@ int isFullCACHE() {
 
 /*GET FREE CACHE*/
 /**
- * [取得Caching Table中一個Free Block]
- * [注意!!欲取得Free Block前必須注意已檢查是否已滿? 建議流程isFullCACHE()->getFreeCACHE()]
+ * [取得Caching Table中一個Free Page]
+ * [注意!!欲取得Free Page前必須注意已檢查是否已滿? 建議流程isFullCACHE()->getFreeCACHE()]
  * @return {unsigned long}  [description]
  */
 unsigned long getFreeCACHE() {
-	unsigned long blkno;
-	for (blkno = 0; blkno < SSD_CACHING_SPACE_BY_PAGES; blkno++) {
-		if (cachingSpace[blkno] == BLOCK_FLAG_FREE) {
-			//printf("Free Block number:%lu\n", blkno);
-			return blkno;
+	unsigned long pageno;
+	for (pageno = 0; pageno < SSD_CACHING_SPACE_BY_PAGES; pageno++) {
+		if (cachingSpace[pageno] == PAGE_FLAG_FREE) {
+			//printf("Free Page number:%lu\n", pageno);
+			return pageno;
 		}
 	}
-	PrintError(-1, "[CACHE]Get an invalid free block number");
-	//If return this means "NO FREE BLOCK"!
-	return blkno;
+	PrintError(-1, "[CACHE]Get an invalid free Page number");
+	//If return this means "NO FREE Page"!
+	return pageno;
 }
 
 /*CACHING TABLE OUTPUT*/
@@ -467,7 +467,7 @@ void printCACHEByLRU() {
 	printf("[SSD CACHE]<<<MRU<<<");
 	SSD_CACHE *search;
 	for (search = cachingTable; search != NULL; search=search->next) {
-		printf("%lu(%lu) <-> ", search->ssd_blkno, search->hdd_blkno);;
+		printf("%lu(%lu) <-> ", search->pageno, search->diskBlkno);;
 	}
 
 	printf("NULL (%lu)\n", SSD_CACHING_SPACE_BY_PAGES-freeCount);

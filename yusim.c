@@ -4,7 +4,6 @@ pid_t SSDsimProc, HDDsimProc;
 FILE *trace, *statistics;
 char *par[6];
 double scheduleTime = 0;
-
 unsigned long period = 0;
 
 /*DISKSIM INITIALIZATION*/
@@ -55,13 +54,13 @@ void rmDisksim() {
 
     if(recvRequestByMSQ(KEY_MSQ_DISKSIM_1, ctrl_rtn, MSG_TYPE_DISKSIM_1_SERVED) == -1)
             PrintError(-1, "A served request not received from MSQ in recvRequestByMSQ():");
-    printf(COLOR_YB"SSDsim response time = %lf\n"COLOR_N, ctrl_rtn->responseTime);
+    printf(COLOR_YB"[YUSIM]SSDsim response time = %lf\n"COLOR_N, ctrl_rtn->responseTime);
 
     sendFinishControl(KEY_MSQ_DISKSIM_2, MSG_TYPE_DISKSIM_2);
 
     if(recvRequestByMSQ(KEY_MSQ_DISKSIM_2, ctrl_rtn, MSG_TYPE_DISKSIM_2_SERVED) == -1)
             PrintError(-1, "A served request not received from MSQ in recvRequestByMSQ():");
-    printf(COLOR_YB"HDDsim response time = %lf\n"COLOR_N, ctrl_rtn->responseTime); 
+    printf(COLOR_YB"[YUSIM]HDDsim response time = %lf\n"COLOR_N, ctrl_rtn->responseTime); 
     rmMSQ();
 }
 
@@ -115,7 +114,7 @@ void scheduling(double next_timeout) {
             scheduleTime = response + userq[candidate].tail->r.arrivalTime;
         else //否則，只須累加下一個request的response time即可
             scheduleTime += response;
-        //printf("[YUSIM]Blkno=%lu, Response time=%lf, scheduleTime=%lf\n", userq[candidate].tail->r.blkno, response, scheduleTime);
+        //printf("[YUSIM]Blkno=%lu, Response time=%lf, scheduleTime=%lf\n", userq[candidate].tail->r.diskBlkno, response, scheduleTime);
         evictQUE(candidate, userq[candidate].tail);
         
         /*USER STATISTICS*/
@@ -160,26 +159,18 @@ int main(int argc, char *argv[]) {
     par[4] = argv[5];
     par[5] = argv[6];
 
+    trace = fopen(par[0], "r");
+    if (!trace)
+        PrintError(-1, "[YUSIM]Input file open error");
+    statistics = fopen(par[5], "w");
+
     printParameters();
 
     initDisksim();
-    initUSERSTAT();
-    
-
 
     printf("[YUSIM]Enter to continute ...\n");
     
     getchar();
-    
-    REQ *tmp, *rtn;
-    tmp = calloc(1, sizeof(REQ));
-    rtn = calloc(1, sizeof(REQ));
-
-    statistics = fopen(par[5], "w");
-
-    trace = fopen(par[0], "r");
-    if (!trace)
-        PrintError(-1, "[YUSIM]Input file open error");
 
     /*GET USER WEIGHT*/
     int i;
@@ -190,13 +181,16 @@ int main(int argc, char *argv[]) {
     }
     initUserCACHE();
     creditInit();
+    initUSERSTAT();
+
+    REQ *tmp;
+    tmp = calloc(1, sizeof(REQ));
 
     while(!feof(trace)) {
-        fscanf(trace, "%lf%u%lu%u%u%u", &tmp->arrivalTime, &tmp->devno, &tmp->blkno, &tmp->reqSize, &tmp->reqFlag, &tmp->userno);
+        fscanf(trace, "%lf%u%lu%u%u%u", &tmp->arrivalTime, &tmp->devno, &tmp->diskBlkno, &tmp->reqSize, &tmp->reqFlag, &tmp->userno);
         //PrintREQ(tmp, "Trace");
-        //getchar();
 
-        //判斷時間間隔，用於策略的動態調整
+        //判斷時間間隔，模擬系統時間
         if (tmp->arrivalTime <= scheduleTime) {
             /*USER IDENTIFICATION*/
             if(insertQUE(tmp, tmp->userno-1) == -1)
@@ -214,16 +208,12 @@ int main(int argc, char *argv[]) {
             /*USER IDENTIFICATION*/
             if(insertQUE(tmp, tmp->userno-1) == -1)
                 PrintError(-1, "[YUSIM]Error user or user queue! insertQUE():");
-            /*NEXT TIME PERIOD*/
-            //The N-th time period = (int)(tmp->arrivalTime/TIME_PERIOD + 1);N=1~n
-            
-        }
-             
+        }      
     }
     //printf(COLOR_RB"[YUSIM]Time to %lf\n"COLOR_N, scheduleTime);
     //printQUE();
-    /*THE LAST TIME PERIOD*/
     
+    /*THE LAST TIME PERIOD*/
     scheduling(-1);
     //metaTablePrint();
 

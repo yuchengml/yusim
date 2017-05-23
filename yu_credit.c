@@ -33,10 +33,8 @@ int creditReplenish(unsigned userno) {
     
     int i;
     for(i = 0; i < NUM_OF_USER; i++) {
-        if (userCredit[i] < 0){
-            printf("userCredit<0");
+        if (userCredit[i] < 0)
             userCredit[i] += INIT_CREDIT * ((double)userWeight[i]/totalWeight); //"+=" 考慮上次可能為負
-        }
         else
             userCredit[i] = INIT_CREDIT * ((double)userWeight[i]/totalWeight);
     }

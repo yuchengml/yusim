@@ -53,7 +53,7 @@ int sendRequestByMSQ(key_t key, REQ *r, long msgtype) {
 	msg.msgType = msgtype;
 	msg.req.arrivalTime = r->arrivalTime;
     msg.req.devno = r->devno;
-    msg.req.blkno = r->blkno;
+    msg.req.diskBlkno = r->diskBlkno;
     msg.req.reqSize = r->reqSize;
     msg.req.reqFlag = r->reqFlag;
     msg.req.userno = r->userno;
@@ -64,7 +64,6 @@ int sendRequestByMSQ(key_t key, REQ *r, long msgtype) {
 	}
 	else
 		return -1;
-		//PrintError(msqid, "A request not sent to MSQ:");	
 }
 
 /*RECEIVE REQUEST BY MESSAGE QUEUE*/
@@ -84,17 +83,15 @@ int recvRequestByMSQ(key_t key, REQ *r, long msgtype) {
 		//PrintDebug(msqid, "A request received from MSQ:");
 		r->arrivalTime = buf.req.arrivalTime;
 		r->devno = buf.req.devno;
-		r->blkno = buf.req.blkno;
+		r->diskBlkno = buf.req.diskBlkno;
 		r->reqSize = buf.req.reqSize;
 		r->reqFlag = buf.req.reqFlag;
 		r->userno = buf.req.userno;
 		r->responseTime = buf.req.responseTime;
 		return 0;
 	}
-	else {
-		//PrintError(msqid, "A request not received from MSQ in recvRequestByMSQ():");
+	else 
 		return -1;
-	}	
 }
 
 /*TEST MESSAGE QUEUE*/
@@ -111,7 +108,7 @@ void testMessageQueue() {
 	r = calloc(1, sizeof(REQ));
 	r->arrivalTime = 0.00;
 	r->devno = 0;
-	r->blkno = 1234;
+	r->diskBlkno = 1234;
 	r->reqSize = 16;
 	r->reqFlag = 0;
 	r->userno = 0;

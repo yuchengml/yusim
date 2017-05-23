@@ -147,7 +147,7 @@ void exec_SSDsim(char *name, const char *parm_file, const char *output_file) {
 			 *blkno=>第?個sector (512Bytes)
 			 *bytecount=>一共存取?個sector
 			*/
-			pendReq->req.blkno = rp->blkno;//*(SSD_BLOCK2SECTOR);
+			pendReq->req.blkno = rp->diskBlkno;
 			pendReq->req.bytecount = rp->reqSize*DISKSIM_SECTOR;
 			/*
 			printf("pendReq->req.start=%lf\n", pendReq->req.start);
@@ -244,7 +244,7 @@ void exec_HDDsim(char *name, const char *parm_file, const char *output_file) {
 			 *blkno=>第?個sector (512Bytes)
 			 *bytecount=>一共存取?個sector
 			*/
-			pendReq->req.blkno = rp->blkno;//*HDD_BLOCK2SECTOR;
+			pendReq->req.blkno = rp->diskBlkno;
 			pendReq->req.bytecount = rp->reqSize*DISKSIM_SECTOR;
 			/*
 			printf("pendReq->req.start=%lf\n", pendReq->req.start);

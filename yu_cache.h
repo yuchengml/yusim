@@ -4,14 +4,15 @@
 #include <stdio.h>
 #include "yu_parameter.h"
 #include "yu_credit.h"
+#include "yu_statistics.h"
 #include "yu_debug.h"
 
 	/*STRUCTURE DEFINITION: SSD CACHE*/
 	typedef struct SSD_cache {
 		struct SSD_cache *pre;		//指向前一個CACHE BLOCK
-		unsigned long ssd_blkno;	//SSD Block Number
-		unsigned long hdd_blkno;	//HDD Block Number
-		int dirtyFlag;				//標記是否為Dirty Block
+		unsigned long pageno;		//(In cache)SSD Page Number
+		unsigned long diskBlkno;	//(In disk) HDD Block Number//Block編號(根據Disksim格式)
+		int dirtyFlag;				//標記是否為Dirty page
 		struct SSD_cache *next;
 	} SSD_CACHE;
 
@@ -30,11 +31,11 @@
 	/*USER CACHE INITIALIZATION*/
 	int initUserCACHE();
 	/*INSERT CACHE TABLE BY USER*/
-	int insertCACHEByUser(unsigned long *ssd_blk, unsigned long *hdd_blk, int reqFlag, unsigned userno);
-	/*CACHE EVICTION POLICY:SPECIFIC HDD Block and User*/
-	SSD_CACHE *evictCACHEByUser(unsigned long hdd_blk, unsigned userno);
+	int insertCACHEByUser(unsigned long *diskBlk, int reqFlag, unsigned userno);
+	/*CACHE EVICTION POLICY:SPECIFIC Block and User*/
+	SSD_CACHE *evictCACHEFromLRUByUser(unsigned long diskBlk, unsigned userno);
 	/*SEARCH CACHE BY USER*/
-	SSD_CACHE *searchCACHEByUser(unsigned long hdd_blk, unsigned userno);
+	SSD_CACHE *searchCACHEByUser(unsigned long diskBlk, unsigned userno);
 	/*CHECK CACHE FULL BY USER*/
 	int isFullCACHEByUser(unsigned userno);
 	/*GET FREE CACHE BY USER*/
@@ -52,13 +53,13 @@
 	int cachingSpace[SSD_CACHING_SPACE_BY_PAGES];
 
 	/*INSERT CACHE TABLE*/
-	int insertCACHE(unsigned long *ssd_blk, unsigned long *hdd_blk, int reqFlag);
+	int insertCACHE(unsigned long *diskBlk, int reqFlag);
 	/*CACHE EVICTION:LRU*/
 	SSD_CACHE *evictCACHEByLRU();
 	/*CACHE EVICTION POLICY:SPECIFIC HDD Block*/
-	SSD_CACHE *evictCACHE(unsigned long hdd_blk);
+	SSD_CACHE *evictCACHE(unsigned long diskBlk);
 	/*SEARCH CACHE*/
-	SSD_CACHE *searchCACHE(unsigned long hdd_blk);
+	SSD_CACHE *searchCACHE(unsigned long diskBlk);
 	/*CHECK CACHE FULL*/
 	int isFullCACHE();
 	/*GET FREE CACHE*/

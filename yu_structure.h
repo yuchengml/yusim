@@ -11,7 +11,7 @@
 	typedef struct req {
 		double arrivalTime;		//抵達時間
 		unsigned devno;			//裝置編號(預設為0)
-		unsigned long blkno;	//Block編號(根據Disksim格式)
+		unsigned long diskBlkno;//Block編號(根據Disksim格式)
 		unsigned reqSize;		//Block連續數量(至少為1)
 		unsigned reqFlag;		//讀:1;寫:0
 		unsigned userno;		//使用者編號(1~n)
@@ -45,9 +45,7 @@
 	void copyReq(REQ *r, REQ *copy);
 	/*取得totalRequests值*/
 	unsigned long getTotalReqs();
-	/*將SSD Block Number轉成Disksim Block(Sector)*/
-	unsigned long ssdBlk2simSector(unsigned long ssd_blk);
 	/*將SSD Page Number轉成Disksim Block(Sector)*/
-	unsigned long ssdPage2simSector(unsigned long ssd_blk);
+	unsigned long ssdPage2simSector(unsigned long ssdPageno);
 
 #endif

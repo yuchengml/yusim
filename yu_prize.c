@@ -6,19 +6,12 @@
  */
 void metaTablePrint() {
 	METABLOCK *search;
-	search = APN;
+	search = metaTable;
 	printf(COLOR_GB);
 	printf("----------------------------------------------------------------------------------------------------\n");
-	printf("-[<APN>METADATA BLOCK TABLE]\n");
+	printf("-[METADATA BLOCK TABLE]\n");
 	while(search != NULL) {
-		printf("-    [PRIZE] ssd_blkno =%8lu hdd_blkno =%8lu readCnt =%6u writeCnt =%6u seqLen =%3u *prize =%3lf\n", search->ssd_blkno, search->hdd_blkno, search->readCnt, search->writeCnt, search->seqLen, search->prize);
-		search = search->next;
-	}
-
-	search = CPN;
-	printf("-[<CPN>METADATA BLOCK TABLE]\n");
-	while(search != NULL) {
-		printf("-    [PRIZE]                     hdd_blkno =%8lu readCnt =%6u writeCnt =%6u seqLen =%3u *prize =%3lf\n", search->hdd_blkno, search->readCnt, search->writeCnt, search->seqLen, search->prize);
+		printf("-    [PRIZE] blkno =%8lu readCnt =%6u writeCnt =%6u seqLen =%3u *prize =%3lf\n", search->blkno, search->readCnt, search->writeCnt, search->seqLen, search->prize);
 		search = search->next;
 	}
 	printf("----------------------------------------------------------------------------------------------------\n");
@@ -30,7 +23,7 @@ void metaTablePrint() {
  * [計算Prize值]
  * @param {unsigned int} readCnt [Block讀取次數]
  * @param {unsigned int} writeCnt [Block寫入次數]
- * @param {unsigned int} seqLen [多少pages(預設block的總page數)]
+ * @param {unsigned int} seqLen [多少pages]
  * @return {double} - [Prize值]
  */
 double getPrize(unsigned int readCnt, unsigned int writeCnt, unsigned int seqLen) {
@@ -55,31 +48,24 @@ void metaTableUpdate(METABLOCK *metablk, REQ *tmp) {
 		default:
 			break;
 	}
-	//Modify seqLen
-	//size為多少個Disksim block(512bytes)，因此轉換為byte再轉換SSD page數
-	//if (metablk->seqLen < (tmp->reqSize*DISKSIM_SECTOR)/SSD_PAGE_SIZE)
-	//	metablk->seqLen = (tmp->reqSize*DISKSIM_SECTOR)/SSD_PAGE_SIZE;
-	//目前以存取整個SSD Block為單位
-	metablk->seqLen = SSD_PAGES_PER_BLOCK;
 
 	metablk->prize = getPrize(metablk->readCnt, metablk->writeCnt, metablk->seqLen);
 
-	//printf("[PRIZE]metaTableUpdate():METABLOCK ssd_blkno =%8lu hdd_blkno =%8lu readCnt =%6u writeCnt =%6u seqLen =%3u prize =%3lf\n", metablk->ssd_blkno, metablk->hdd_blkno, metablk->readCnt, metablk->writeCnt, metablk->seqLen, metablk->prize);
+	//printf("[PRIZE]metaTableUpdate():METABLOCK blkno =%8lu readCnt =%6u writeCnt =%6u seqLen =%3u prize =%3lf\n", metaTable->blkno, metaTable->readCnt, metaTable->writeCnt, metaTable->seqLen, metaTable->prize);
+	//metaTablePrint();
 }
 
 /*RECORD METADATA BLOCK TABLE */
 /**
  * [新增Metadata Block至指定Table]
- * @param {METABLOCK**} metaTable [指向Metadata Block Table指標的指標]
  * @param {REQ} tmp [Request]
+ * @return {METABLOCK*} search/NULL [New Metadata Block]
  */
-void metaTableRecord(METABLOCK **metaTable, REQ *tmp) {
+METABLOCK *metaTableRecord(REQ *tmp) {
 	METABLOCK *search;
 	search = (METABLOCK *) calloc(1, sizeof(METABLOCK));
 	//將Disksim block(512bytes) number 轉換為 SSD block(SSD_BLOCK_SIZE) number
-	search->ssd_blkno = 0;
-	search->hdd_blkno = tmp->blkno;
-	//printf("%lu\n", search->blkno);
+	search->blkno = tmp->diskBlkno/(SSD_PAGE2SECTOR*SSD_PAGES_PER_BLOCK); //轉換成以SSD block大小的number
 	//Modify readCnt and writeCnt
 	switch (tmp->reqFlag) {
 		case DISKSIM_READ:
@@ -93,83 +79,35 @@ void metaTableRecord(METABLOCK **metaTable, REQ *tmp) {
 	}
 
 	//Modify seqLen
-	//tmp->reqSize為多少個Disksim block(512bytes)，因此轉換為byte再轉換SSD page數
-	//search->seqLen = (tmp->reqSize*DISKSIM_SECTOR)/SSD_PAGE_SIZE;
-	//目前以存取整個SSD Block為單位
-	search->seqLen = SSD_PAGES_PER_BLOCK;
+	search->seqLen = 0;
 
 	search->prize = getPrize(search->readCnt, search->writeCnt, search->seqLen);
 
 	search->user = tmp->userno;
 
-	search->next = *metaTable;
-	*metaTable = search;
+	search->next = metaTable;
+	metaTable = search;
 	
-	//printf("[PRIZE]metaTableRecord():METABLOCK ssd_blkno =%8lu hdd_blkno =%8lu readCnt =%6u writeCnt =%6u seqLen =%3u prize =%3lf\n", search->ssd_blkno, search->hdd_blkno, search->readCnt, search->writeCnt, search->seqLen, search->prize);
-}
-
-/*SEARCH METADATA BLOCK TABLE*/
-/**
- * [根據指定的Block Number(for HDD)搜尋指定的Metadata BlockTable]
- * @param {METABLOCK*} metaTable [指定的Metadata Block Table]
- * @param {unsigned long} blkno [指定的Block Number(for HDD)]
- * @return {METABLOCK*} search/NULL [搜尋Metadata Block結果]
- */
-METABLOCK *metadataSearch(METABLOCK *metaTable, unsigned long blkno) {
-	METABLOCK *search = NULL;
-	search = metaTable;
-	if (metaTable == NULL)
-		return NULL;
-	
-	while(search != NULL) {
-		if (search->hdd_blkno == blkno) {
-			return search;
-		}
-		else
-			search = search->next;
-	}
-	return NULL;
-}
-
-/*SEARCH METADATA BLOCK TABLE FOR MINIMAL PRIZE*/
-/**
- * [於指定的Metadata BlockTable中，搜尋有最小Prize值的Metadata Block]
- * @param {METABLOCK*} metaTable [指定的Metadata Block Table]
- * @return {METABLOCK*} min/NULL [搜尋Metadata Block結果]
- */
-METABLOCK *metadataSearchByMinPrize(METABLOCK *metaTable) {
-	METABLOCK *search = NULL, *min;
-	search = metaTable;
-	min = metaTable;
-	if (metaTable == NULL)
-		return NULL;
-
-	while(search != NULL) {
-		if (search->prize <= min->prize) {
-			min = search;
-		}
-		search = search->next;
-	}
-	//printf("[PRIZE]metadataSearchByMinPrize():Blkno:%lu, Min prize:%lf\n", min->ssd_blkno, min->prize);
-	return min;
+	//printf("[PRIZE]metaTableRecord():METABLOCK blkno =%8lu readCnt =%6u writeCnt =%6u seqLen =%3u prize =%3lf\n", search->blkno, search->readCnt, search->writeCnt, search->seqLen, search->prize);
+	//metaTablePrint();
+	return search;
 }
 
 /*SEARCH METADATA BLOCK TABLE BY USER*/
 /**
  * [根據指定的Block Number(for HDD)搜尋指定的Metadata BlockTable]
- * @param {METABLOCK*} metaTable [指定的Metadata Block Table]
- * @param {unsigned long} blkno [指定的Block Number(for HDD)]
+ * @param {unsigned long} diskBlk [指定的Block Number(for HDD)(disksim格式)]
  * @param {unsigned} userno [User number(1-n)]
  * @return {METABLOCK*} search/NULL [搜尋Metadata Block結果]
  */
-METABLOCK *metadataSearchByUser(METABLOCK *metaTable, unsigned long blkno, unsigned userno) {
+METABLOCK *metadataSearchByUser(unsigned long diskBlk, unsigned userno) {
 	METABLOCK *search = NULL;
 	search = metaTable;
 	if (metaTable == NULL)
 		return NULL;
 	
 	while(search != NULL) {
-		if (search->hdd_blkno == blkno && search->user == userno) {
+		if (search->blkno == diskBlk/(SSD_PAGE2SECTOR*SSD_PAGES_PER_BLOCK) && search->user == userno) {
 			return search;
 		}
 		else
@@ -181,66 +119,35 @@ METABLOCK *metadataSearchByUser(METABLOCK *metaTable, unsigned long blkno, unsig
 /*SEARCH METADATA BLOCK TABLE FOR USER WITH MINIMAL PRIZE*/
 /**
  * [於指定的Metadata BlockTable中，搜尋有最小Prize值的Metadata Block]
- * @param {METABLOCK*} metaTable [指定的Metadata Block Table]
  * @param {unsigned} userno [User number(1-n)]
- * @return {METABLOCK*} min/NULL [搜尋Metadata Block結果]
+ * @return {METABLOCK *} min [搜尋結果metadata block 必須是有cached page的]
  */
-METABLOCK *metadataSearchByUserWithMinPrize(METABLOCK *metaTable, unsigned userno) {
-	METABLOCK *search = NULL, *min;
+METABLOCK *metadataSearchByUserWithMinPrize(unsigned userno) {
+	METABLOCK *search=NULL, *min=NULL;
 	search = metaTable;
-	min = metaTable;
 	if (metaTable == NULL)
-		return NULL;
-	else {
-		//先找出第一個同User Number的Metadata
-		while(search != NULL) {
-			if (search->user == userno) {
-				min = search;
-				break;
-			}
-			search = search->next;
+		return min;
+
+	unsigned i;
+	//先找出第一個同User Number的Metadata
+	while(search != NULL) {
+		if (search->user == userno && search->seqLen > 0) {
+			min = search;
+			break;
 		}
+		search = search->next;
 	}
 
 	//再比較所有同User Number的Metadata，取帶有最小Prize值的User
 	while(search != NULL) {
-		if (search->prize <= min->prize && search->user == userno) {
+		if (search->prize < min->prize && search->user == userno && search->seqLen > 0) {
 			min = search;
 		}
 		search = search->next;
 	}
-	//printf("[PRIZE]metadataSearchByUserWithMinPrize():Blkno:%lu, Min prize:%lf\n", min->ssd_blkno, min->prize);
+	//metaTablePrint();
+	//printf("[PRIZE]metadataSearchByUserWithMinPrize():Blkno:%lu, Min prize:%lf\n", min->blkno, min->prize);
 	return min;
-}
-
-/*CONVERT METADATA BLOCK TABLE*/
-/**
- * [將某METADATA BLOCK TABLE的Block移至另一個METADATA BLOCK TABLE]
- * @param {METABLOCK**} oriTable [來源METADATA BLOCK TABLE,雙指標]
- * @param {METABLOCK**} objTable [目的METADATA BLOCK TABLE,雙指標]
- * @param {METABLOCK*} metablk [欲轉移的Metadata Block]
- * @return {int} 0/-1 [Error flag(True or False)]
- */
-int metaTableConvert(METABLOCK **oriTable, METABLOCK **objTable, METABLOCK *metablk) {
-	//若原Table的第一筆即為欲轉移的block
-	if (*oriTable == metablk) {
-		*oriTable = metablk->next;
-		metablk->next = *objTable;
-		*objTable = metablk;
-		return 0;
-	}
-	else {
-		METABLOCK *search;
-		for (search = *oriTable; search->next != NULL; search=search->next) {
-			if(search->next == metablk) {
-				search->next = metablk->next;
-				metablk->next = *objTable;
-				*objTable = metablk;
-				return 0;
-			}
-		}
-	}
-	return -1;
 }
 
 /*PRIZE CACHING*/
@@ -254,56 +161,62 @@ double prizeCaching(REQ *tmp) {
 	double response = 0;
 	int flag = 0;
 	if (tmp->reqFlag == DISKSIM_READ) {
-		flag = BLOCK_FLAG_CLEAN;
+		flag = PAGE_FLAG_CLEAN;
 		pcst.UserRReq++;
 		userst[tmp->userno-1].UserRReq++;
 	}
 	else
-		flag = BLOCK_FLAG_DIRTY;
+		flag = PAGE_FLAG_DIRTY;
 	
-	//(1)確認是否為APN或CPN，更新meta data(r/w count)
-	METABLOCK *search_APN, *search_CPN;
-	search_APN = metadataSearchByUser(APN, tmp->blkno, tmp->userno);
-	search_CPN = metadataSearchByUser(CPN, tmp->blkno, tmp->userno);
-	//(2)若為APN，則更新APN並發出SSDsim request
-	if (search_APN != NULL) {
+	//檢查是否在Cache
+	SSD_CACHE *cache;
+	cache = searchCACHEByUser(tmp->diskBlkno, tmp->userno);
+	if (cache != NULL) {
 		pcst.hitCount++;
 		userst[tmp->userno-1].hitCount++;
-		//(3a)更新metadata(prize)
-		metaTableUpdate(search_APN, tmp);
+
+		//Caching
+		if (insertCACHEByUser(&tmp->diskBlkno, flag, tmp->userno) == -1)
+			PrintError(-1, "[PRIZE]insertCACHEByUser() error(cache hit but return full)");
+		
+		//更新metadata(prize)
+		METABLOCK *meta;
+		meta = metadataSearchByUser(tmp->diskBlkno, tmp->userno);
+		if (meta == NULL) {
+			PrintError(-1, "[PRIZE]metadataSearchByUser() error(in cache but no metadata)");
+		}
+		metaTableUpdate(meta, tmp);
+
 		//Read,Write SSDsim
 		REQ *r;
 		r = calloc(1, sizeof(REQ));
 		copyReq(tmp, r);
-		r->blkno = ssdPage2simSector(search_APN->ssd_blkno);
+		r->diskBlkno = ssdPage2simSector(cache->pageno);
 		response += sendRequest(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1, r);
 		pcst.totalUserReq++;
 		userst[tmp->userno-1].totalUserReq++;
 		free(r);
 	}
-	else {
+	else { //Cache Miss
 		pcst.missCount++;
 		userst[tmp->userno-1].missCount++;
-		//(2)若為CPN，則更新CPN並考慮轉至APN
-		if (search_CPN != NULL) {
-			//(3b)更新metadata(prize)
-			metaTableUpdate(search_CPN, tmp);
-		}
-		else {//(2)若無CPN，則新增CPN並考慮轉至APN
-			//(3b)新增metadata(prize)
-			metaTableRecord(&CPN, tmp);
-			//新增的CPN在head端
-			search_CPN = CPN;
-		}
-		//(4b)比較MIN_PRIZE，若大於等於則考慮轉至APN
-		if (search_CPN->prize >= MIN_PRIZE) {
-			//(5b)考慮Caching space是否滿足所需空間(BLOCK)，若成立則轉至APN
-			//Cache or Evict 並且發出相對應的SSDsim & HDDsim requests
-			if (insertCACHEByUser(&search_CPN->ssd_blkno, &search_CPN->hdd_blkno, flag, tmp->userno) != -1) {
-				//printf("[PRIZE]CACHE  METABLOCK ssd_blkno =%8lu hdd_blkno =%8lu readCnt =%6u writeCnt =%6u seqLen =%3u prize =%3lf\n", search_CPN->ssd_blkno, search_CPN->hdd_blkno, search_CPN->readCnt, search_CPN->writeCnt, search_CPN->seqLen, search_CPN->prize);
-				//CPN to APN
-				if (metaTableConvert(&CPN, &APN, search_CPN) == -1)
-					PrintError(-1, "[PRIZE]metaTableConvert() error(CPN->APN)");
+
+		//新增或更新metadata(prize)
+		METABLOCK *meta;
+		meta = metadataSearchByUser(tmp->diskBlkno, tmp->userno);
+		if (meta == NULL)
+			meta = metaTableRecord(tmp);
+		else
+			metaTableUpdate(meta, tmp);
+
+		//比較MIN_PRIZE，大於等於則考慮Caching
+		if (meta->prize >= MIN_PRIZE) {
+			//Cache size足夠，無須Eviction
+			if (insertCACHEByUser(&tmp->diskBlkno, flag, tmp->userno) != -1) {
+				cache = searchCACHEByUser(tmp->diskBlkno, tmp->userno);
+				if (cache == NULL)
+					PrintError(-1, "[PRIZE]insertCACHEByUser() insert error(meta->prize >= MIN_PRIZE):");
+				meta->seqLen++;
 				//如果是Read, 則Read HDDsim & Write SSDsim
 				if (tmp->reqFlag == DISKSIM_READ) {
 					REQ *r;
@@ -315,7 +228,7 @@ double prizeCaching(REQ *tmp) {
 					userst[tmp->userno-1].totalUserReq++;
 					//Write SSDsim
 					r->reqFlag = DISKSIM_WRITE;
-					r->blkno = ssdPage2simSector(search_CPN->ssd_blkno);
+					r->diskBlkno = ssdPage2simSector(cache->pageno);
 					response += sendRequest(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1, r);
 					pcst.totalSysReq++;
 					userst[tmp->userno-1].totalSysReq++;
@@ -325,42 +238,40 @@ double prizeCaching(REQ *tmp) {
 					REQ *r;
 					r = calloc(1, sizeof(REQ));
 					copyReq(tmp, r);
-					r->blkno = ssdPage2simSector(search_CPN->ssd_blkno);
+					r->diskBlkno = ssdPage2simSector(cache->pageno);
 					response += sendRequest(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1, r);
 					pcst.totalUserReq++;
 					userst[tmp->userno-1].totalUserReq++;
 					free(r);
 				}
 			}
-			else {//(6b)比較有最小prize的APN，作為取代進cache的對象 
-				METABLOCK *minAPN;
-				minAPN = metadataSearchByUserWithMinPrize(APN, tmp->userno);
-				if (minAPN == NULL)
-					PrintError(-1, "[PRIZE]Something error:No caching space and no victim(minAPN)!");
-				//若欲Cache的CPN的Prize >= The APN with min prize
-				if (search_CPN->prize >= minAPN->prize) {
-					//(7b)更新Base Prize
-					basePrize = minAPN->prize;
-					//(8b)更新此Prize
-					search_CPN->prize = getPrize(search_CPN->readCnt, search_CPN->writeCnt, search_CPN->seqLen);
-					//(9b)剔除Min APN至CPN
+			else { //比較有最小prize的cached page，作為取代進cache的對象
+				METABLOCK *min_meta=NULL;
+				min_meta = metadataSearchByUserWithMinPrize(tmp->userno);
+				if (min_meta == NULL)
+					PrintError(-1, "[PRIZE]Something error:No caching space and no metadata with minPrize!");
+				//若欲進入Cache的new page其meta的Prize >= 所有meta中最小的Prize
+				if (meta->prize >= min_meta->prize) {
+					//更新Base Prize
+					basePrize = min_meta->prize;
+					//更新此Prize
+					meta->prize = getPrize(meta->readCnt, meta->writeCnt, meta->seqLen);
+					//剔除page with min Prize
 					SSD_CACHE *evict;
-					evict = evictCACHEByUser(minAPN->hdd_blkno, tmp->userno);
+					evict = evictCACHEFromLRUByUser(min_meta->blkno, tmp->userno);
+					min_meta->seqLen--;
 					if (evict == NULL)
-						PrintError(-1, "[PRIZE]Cache eviction error:! Victim not found!");
-					//APN to CPN
-					if (metaTableConvert(&APN, &CPN, minAPN) == -1)
-						PrintError(-1, "[PRIZE]metaTableConvert() error(APN->CPN)");
-					//如果是Dirty, 則Read SSDsim & Write HDDsim; Clean則沒事
-					if (evict->dirtyFlag == BLOCK_FLAG_DIRTY) {
+						PrintError(-1, "[PRIZE]Cache eviction error:! Victim not found!:");
+					//如果Victim page是Dirty, 則Read SSDsim & Write HDDsim; Clean則沒事
+					if (evict->dirtyFlag == PAGE_FLAG_DIRTY) {
 						REQ *r1, *r2;
 						r1 = calloc(1, sizeof(REQ));
 						r2 = calloc(1, sizeof(REQ));
 						copyReq(tmp, r1);
 						copyReq(tmp, r2);
-						r1->blkno = ssdPage2simSector(evict->ssd_blkno);
+						r1->diskBlkno = ssdPage2simSector(evict->pageno);
 						r1->reqFlag = DISKSIM_READ;
-						r2->blkno = evict->hdd_blkno;
+						r2->diskBlkno = evict->diskBlkno;
 						r2->reqFlag = DISKSIM_WRITE;
 						response += sendRequest(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1, r1);
 						pcst.totalSysReq++;
@@ -376,13 +287,13 @@ double prizeCaching(REQ *tmp) {
 					free(evict);
 					pcst.evictCount++;
 					userst[tmp->userno-1].evictCount++;
-					
+
 					//Caching
-					if (insertCACHEByUser(&search_CPN->ssd_blkno, &search_CPN->hdd_blkno, flag, tmp->userno) != -1) {
-						//printf("[PRIZE]CACHE  METABLOCK ssd_blkno =%8lu hdd_blkno =%8lu readCnt =%6u writeCnt =%6u seqLen =%3u prize =%3lf\n", search_CPN->ssd_blkno, search_CPN->hdd_blkno, search_CPN->readCnt, search_CPN->writeCnt, search_CPN->seqLen, search_CPN->prize);
-						//CPN to APN
-						if (metaTableConvert(&CPN, &APN, search_CPN) == -1)
-							PrintError(-1, "[PRIZE]metaTableConvert() error(CPN->APN)");
+					if (insertCACHEByUser(&tmp->diskBlkno, flag, tmp->userno) != -1) {
+						cache = searchCACHEByUser(tmp->diskBlkno, tmp->userno);
+						if (cache == NULL)
+							PrintError(-1, "[PRIZE]insertCACHEByUser() insert error(cache after evict):");
+						meta->seqLen++;
 						//如果是Read, 則Read HDDsim & Write SSDsim
 						if (tmp->reqFlag == DISKSIM_READ) {
 							REQ *r;
@@ -394,7 +305,7 @@ double prizeCaching(REQ *tmp) {
 							userst[tmp->userno-1].totalUserReq++;
 							//Write SSDsim
 							r->reqFlag = DISKSIM_WRITE;
-							r->blkno = ssdPage2simSector(search_CPN->ssd_blkno);
+							r->diskBlkno = ssdPage2simSector(cache->pageno);
 							response += sendRequest(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1, r);
 							pcst.totalSysReq++;
 							userst[tmp->userno-1].totalSysReq++;
@@ -404,7 +315,7 @@ double prizeCaching(REQ *tmp) {
 							REQ *r;
 							r = calloc(1, sizeof(REQ));
 							copyReq(tmp, r);
-							r->blkno = ssdPage2simSector(search_CPN->ssd_blkno);
+							r->diskBlkno = ssdPage2simSector(cache->pageno);
 							response += sendRequest(KEY_MSQ_DISKSIM_1, MSG_TYPE_DISKSIM_1, r);
 							pcst.totalUserReq++;
 							userst[tmp->userno-1].totalUserReq++;
@@ -429,7 +340,8 @@ double prizeCaching(REQ *tmp) {
 			userst[tmp->userno-1].totalUserReq++;
 		}
 	}
-	//printCACHEByLRU();
+
+	//printCACHEByLRUandUsers();
 	//metaTablePrint();
 	return response;
 }
