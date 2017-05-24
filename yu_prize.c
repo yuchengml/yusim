@@ -395,7 +395,7 @@ double sendRequest(key_t key, long msgtype, REQ *r) {
  * [印出PC Statistic]
  */
 void pcStatistics() {
-	printf(COLOR_BB"[PRIZE] Total Block Requests(SSD/HDD):%lu(%lu/%lu)\n"COLOR_N, pcst.totalBlkReq, pcst.ssdBlkReq, pcst.totalBlkReq-pcst.ssdBlkReq);
+	printf(COLOR_BB"[PRIZE] Total Page Requests(SSD/HDD):%lu(%lu/%lu)\n"COLOR_N, pcst.totalBlkReq, pcst.ssdBlkReq, pcst.totalBlkReq-pcst.ssdBlkReq);
 	printf(COLOR_BB"[PRIZE] Total User Requests(R/W):     %lu(%lu/%lu)\n"COLOR_N, pcst.totalUserReq, pcst.UserRReq, pcst.totalUserReq-pcst.UserRReq);
 	printf(COLOR_BB"[PRIZE] Total System Requests:        %lu\n"COLOR_N, pcst.totalSysReq);
 	printf(COLOR_BB"[PRIZE] Count of Eviction(Dirty):     %lu(%lu)\n"COLOR_N, pcst.evictCount, pcst.dirtyCount);
