@@ -120,13 +120,13 @@ METABLOCK *metadataSearchByUser(unsigned long diskBlk, unsigned userno) {
 /**
  * [於指定的Metadata BlockTable中，搜尋有最小Prize值的Metadata Block]
  * @param {unsigned} userno [User number(1-n)]
- * @return {METABLOCK *} min [搜尋結果metadata block 必須是有cached page的]
+ * @return {double} min->prize [回傳min prize, error:-1]
  */
-METABLOCK *metadataSearchByUserWithMinPrize(unsigned userno) {
+double metadataSearchByUserWithMinPrize(unsigned userno) {
 	METABLOCK *search=NULL, *min=NULL;
 	search = metaTable;
 	if (metaTable == NULL)
-		return min;
+		return -1;
 
 	unsigned i;
 	//先找出第一個同User Number的Metadata
@@ -147,7 +147,7 @@ METABLOCK *metadataSearchByUserWithMinPrize(unsigned userno) {
 	}
 	//metaTablePrint();
 	//printf("[PRIZE]metadataSearchByUserWithMinPrize():Blkno:%lu, Min prize:%lf\n", min->blkno, min->prize);
-	return min;
+	return min->prize;
 }
 
 /*PRIZE CACHING*/
@@ -246,22 +246,31 @@ double prizeCaching(REQ *tmp) {
 				}
 			}
 			else { //比較有最小prize的cached page，作為取代進cache的對象
-				METABLOCK *min_meta=NULL;
-				min_meta = metadataSearchByUserWithMinPrize(tmp->userno);
-				if (min_meta == NULL)
-					PrintError(-1, "[PRIZE]Something error:No caching space and no metadata with minPrize!");
+				double minPrize = -1;
+				minPrize = metadataSearchByUserWithMinPrize(tmp->userno);
+				if (minPrize == -1)
+					PrintError(minPrize, "[PRIZE]Something error:No caching space and no metadata with minPrize!");
 				//若欲進入Cache的new page其meta的Prize >= 所有meta中最小的Prize
-				if (meta->prize >= min_meta->prize) {
+				if (meta->prize >= minPrize) {
 					//更新Base Prize
-					basePrize = min_meta->prize;
+					basePrize = minPrize;
 					//更新此Prize
 					meta->prize = getPrize(meta->readCnt, meta->writeCnt, meta->seqLen);
+					//更新的metadata可能就是有最小prize值，必須更改
+					minPrize = metadataSearchByUserWithMinPrize(tmp->userno);
+					if (minPrize == -1)
+						PrintError(minPrize, "[PRIZE]Something error:No caching space and no metadata with minPrize!");
 					//剔除page with min Prize
 					SSD_CACHE *evict;
-					evict = evictCACHEFromLRUByUser(min_meta->blkno, tmp->userno);
-					min_meta->seqLen--;
+					evict = evictCACHEFromLRUWithMinPrizeByUser(minPrize, tmp->userno);
 					if (evict == NULL)
-						PrintError(-1, "[PRIZE]Cache eviction error:! Victim not found!:");
+						PrintError(-1, "[PRIZE]Cache eviction error: Victim not found!:");
+					METABLOCK *min_meta = NULL;
+					min_meta = metadataSearchByUser(evict->diskBlkno, tmp->userno);
+					if (min_meta == NULL)
+						PrintError(-1, "[PRIZE]Something error: Meta. of victim not found!:");
+					min_meta->seqLen--;
+					
 					//如果Victim page是Dirty, 則Read SSDsim & Write HDDsim; Clean則沒事
 					if (evict->dirtyFlag == PAGE_FLAG_DIRTY) {
 						REQ *r1, *r2;
@@ -341,8 +350,6 @@ double prizeCaching(REQ *tmp) {
 		}
 	}
 
-	//printCACHEByLRUandUsers();
-	//metaTablePrint();
 	return response;
 }
 
@@ -395,9 +402,10 @@ double sendRequest(key_t key, long msgtype, REQ *r) {
  * [印出PC Statistic]
  */
 void pcStatistics() {
-	printf(COLOR_BB"[PRIZE] Total Page Requests(SSD/HDD):%lu(%lu/%lu)\n"COLOR_N, pcst.totalBlkReq, pcst.ssdBlkReq, pcst.totalBlkReq-pcst.ssdBlkReq);
+	printf(COLOR_BB"[PRIZE] Total Page Requests(SSD/HDD): %lu(%lu/%lu)\n"COLOR_N, pcst.totalBlkReq, pcst.ssdBlkReq, pcst.totalBlkReq-pcst.ssdBlkReq);
 	printf(COLOR_BB"[PRIZE] Total User Requests(R/W):     %lu(%lu/%lu)\n"COLOR_N, pcst.totalUserReq, pcst.UserRReq, pcst.totalUserReq-pcst.UserRReq);
 	printf(COLOR_BB"[PRIZE] Total System Requests:        %lu\n"COLOR_N, pcst.totalSysReq);
 	printf(COLOR_BB"[PRIZE] Count of Eviction(Dirty):     %lu(%lu)\n"COLOR_N, pcst.evictCount, pcst.dirtyCount);
-	printf(COLOR_BB"[PRIZE] Hit rate(Hit/Miss):           %lf(%lu/%lu)\n"COLOR_N, (double)pcst.hitCount/(double)(pcst.hitCount+pcst.missCount), pcst.hitCount, pcst.missCount);	
+	printf(COLOR_BB"[PRIZE] Hit rate(Hit/Miss):           %lf(%lu/%lu)\n"COLOR_N, (double)pcst.hitCount/(double)(pcst.hitCount+pcst.missCount), pcst.hitCount, pcst.missCount);
+
 }

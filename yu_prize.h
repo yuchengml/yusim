@@ -59,7 +59,7 @@
 	/*SEARCH METADATA BLOCK TABLE BY USER*/
 	METABLOCK *metadataSearchByUser(unsigned long diskBlk, unsigned userno);
 	/*SEARCH METADATA BLOCK TABLE FOR USER WITH MINIMAL PRIZE*/
-	METABLOCK *metadataSearchByUserWithMinPrize(unsigned userno);
+	double metadataSearchByUserWithMinPrize(unsigned userno);
 
 	/*PRIZE CACHING*/
 	double prizeCaching(REQ *tmp);

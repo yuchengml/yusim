@@ -27,16 +27,16 @@ void initUSERSTAT() {
  */
 void printUSERSTAT(double time) {
     printf(COLOR_BB"[USERSTAT] Scheduling Time=%lf\n"COLOR_N, time);
-    unsigned long i;
+    unsigned i;
     for (i = 0; i < NUM_OF_USER; i++) {
-        printf(COLOR_BB"[USER_%lu] Total Block Requests(SSD/HDD):%lu(%lu/%lu)\n"COLOR_N, i+1, userst[i].totalBlkReq, userst[i].ssdBlkReq, userst[i].totalBlkReq-userst[i].ssdBlkReq);
-        printf(COLOR_BB"[USER_%lu] Total User Requests(R/W):     %lu(%lu/%lu)\n"COLOR_N, i+1, userst[i].totalUserReq, userst[i].UserRReq, userst[i].totalUserReq-userst[i].UserRReq);
-        printf(COLOR_BB"[USER_%lu] Total System Requests:        %lu\n"COLOR_N, i+1, userst[i].totalSysReq);
-        printf(COLOR_BB"[USER_%lu] Count of Eviction(Dirty):     %lu(%lu)\n"COLOR_N, i+1, userst[i].evictCount, userst[i].dirtyCount);
-        printf(COLOR_BB"[USER_%lu] Hit rate(Hit/Miss):           %lf(%lu/%lu)\n"COLOR_N, i+1, (double)userst[i].hitCount/(double)(userst[i].hitCount+userst[i].missCount), userst[i].hitCount, userst[i].missCount);
-        printf(COLOR_BB"[USER_%lu] Throughput:                   %lf(IOPS)\n"COLOR_N, i+1, (double)userst[i].totalUserReq/(time/1000));
-        printf(COLOR_BB"[USER_%lu] Response Time:                %lf\n"COLOR_N, i+1, userst[i].responseTime);
-        printf(COLOR_BB"[USER_%lu] Caching Space:                %lf\n"COLOR_N, i+1, userst[i].cachingSpace);
+        printf(COLOR_BB"[USER_%u] Total Page Requests(SSD/HDD): %lu(%lu/%lu)\n"COLOR_N, i+1, userst[i].totalBlkReq, userst[i].ssdBlkReq, userst[i].totalBlkReq-userst[i].ssdBlkReq);
+        printf(COLOR_BB"[USER_%u] Total User Requests(R/W):     %lu(%lu/%lu)\n"COLOR_N, i+1, userst[i].totalUserReq, userst[i].UserRReq, userst[i].totalUserReq-userst[i].UserRReq);
+        printf(COLOR_BB"[USER_%u] Total System Requests:        %lu\n"COLOR_N, i+1, userst[i].totalSysReq);
+        printf(COLOR_BB"[USER_%u] Count of Eviction(Dirty):     %lu(%lu)\n"COLOR_N, i+1, userst[i].evictCount, userst[i].dirtyCount);
+        printf(COLOR_BB"[USER_%u] Hit rate(Hit/Miss):           %lf(%lu/%lu)\n"COLOR_N, i+1, (double)userst[i].hitCount/(double)(userst[i].hitCount+userst[i].missCount), userst[i].hitCount, userst[i].missCount);
+        printf(COLOR_BB"[USER_%u] Avg. Response Time:           %lf\n"COLOR_N, i+1, userst[i].responseTime/userst[i].totalUserReq);
+        printf(COLOR_BB"[USER_%u] Throughput:                   %lf(IOPS)\n"COLOR_N, i+1, 1000*userst[i].totalUserReq/userst[i].responseTime);
+        printf(COLOR_BB"[USER_%u] Caching Space:                %lf\n"COLOR_N, i+1, userst[i].cachingSpace);
     }
 }
 
@@ -49,8 +49,8 @@ void writeStatFile(double time, FILE **st) {
     fprintf(*st, "%lu\n", (unsigned long)floor(time / TIME_PERIOD));
     unsigned long i;
     for (i = 0; i < NUM_OF_USER; i++) {
-        // User num, Response Time, Throughput, Hit rate, Caching Space
-        fprintf(*st, "%lu %lf %lf %lf %lf\n", i+1, userst[i].responseTime, (double)userst[i].totalUserReq/(time/1000), (double)userst[i].hitCount/(double)(userst[i].hitCount+userst[i].missCount), userst[i].cachingSpace);
+        // User num, Avg. Response Time, Throughput, Hit rate, Caching Space
+        fprintf(*st, "%lu %lf %lf %lf %lf\n", i+1, userst[i].responseTime/userst[i].totalUserReq, 1000*userst[i].totalUserReq/userst[i].responseTime, (double)userst[i].hitCount/(double)(userst[i].hitCount+userst[i].missCount), userst[i].cachingSpace);
     }
 }
 

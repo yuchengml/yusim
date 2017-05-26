@@ -23,7 +23,7 @@
 	 */
 	typedef	double SysTime;		/* system time in seconds.usec */
 	struct Stat {
-		SysTime sysResponse;
+		SysTime stime;
 		unsigned long pendIORequest;
 		unsigned long servedIORequest;
 	} st;

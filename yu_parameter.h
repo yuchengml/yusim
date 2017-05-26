@@ -12,21 +12,18 @@
 	#define TIME_PERIOD 1000 //VSSD uses 1000.0
 	#define NUM_OF_USER 1 //Hint:trace的userno是由1至n
 	
-	#define SSD_CACHING_SPACE_BY_PAGES 64000//MAX:(6156008/SSD_PAGE2SECTOR)
+	#define SSD_CACHING_SPACE_BY_PAGES 64//MAX:(6156008/SSD_PAGE2SECTOR)
 	
 	#define SSD_N_ELEMENTS 1 //預設為8//考慮移除:credit太大 //SSD Channels
 
-
 	/*ipc*/
-	#define KEY_MSQ_DISKSIM_1 0x1000
-	#define KEY_MSQ_DISKSIM_2 0x2000
+	#define KEY_MSQ_DISKSIM_1 0x1100
+	#define KEY_MSQ_DISKSIM_2 0x2100
 	#define MSG_TYPE_DISKSIM_1 100
 	#define MSG_TYPE_DISKSIM_1_SERVED 101
 	#define MSG_TYPE_DISKSIM_2 200
 	#define MSG_TYPE_DISKSIM_2_SERVED 201
 	#define MSG_REQUEST_CONTROL_FLAG_FINISH 999
-
-	/*structure*/
 
 	/*cache*/
 	#define PAGE_FLAG_FREE 0

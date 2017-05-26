@@ -108,6 +108,11 @@ void scheduling(double next_timeout) {
         /*CACHING ALGORITHM*/
         //回傳可得response time
         response = prizeCaching(&userq[candidate].tail->r); //PRIZE.C
+        //DEBUG:
+        //printCACHEByLRUandUsers();
+        //metaTablePrint();
+        PAUSE
+
         //推算執行時間，為模擬系統時間
         //若目前的時間小於下一個request抵達的時間，則將系統時間往後推至下一個request完成的時間
         if (scheduleTime < userq[candidate].tail->r.arrivalTime)
@@ -201,9 +206,6 @@ int main(int argc, char *argv[]) {
             //printQUE();
             
             scheduling(tmp->arrivalTime);
-            //metaTablePrint();
-
-            PAUSE
 
             /*USER IDENTIFICATION*/
             if(insertQUE(tmp, tmp->userno-1) == -1)

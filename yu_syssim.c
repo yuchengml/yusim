@@ -1,6 +1,6 @@
 #include "yu_syssim.h"
 
-static SysTime now = 0;     /* current time *//*本程式將累積此值作為系統整體的response time*/
+static SysTime now = 0;     /* current time */
 static SysTime next_event = -1; /* next event */
 static int completed = 0;   /* requests completed */ // >0:reqs待處理 0:reqs完成(初始)
 static IntqBufReq *IBRhead = NULL;
@@ -55,10 +55,10 @@ void syssim_deschedule_callback(double t, void *ctx) {
 void ssdsim_report_completion(SysTime t, struct disksim_request *r, void *ctx) {
 	completed--;
     now = t;
-    st.sysResponse += (t-r->start);
+    st.stime += (t-r->start);
     //Statistic
     st.servedIORequest++;
-    //printf("[SSDSIM]sysResponse = %lf, start = %lf, *responseTime = %lf, blkno = %lu\n", st.sysResponse, r->start, t-r->start, r->blkno);
+    //printf("[SSDSIM]systime = %lf, start = %lf, *responseTime = %lf, blkno = %lu\n", st.stime, r->start, t-r->start, r->blkno);
     //printf("Now = %lf\n", now);
     REQ *re;
     re = calloc(1, sizeof(REQ));
@@ -72,10 +72,10 @@ void ssdsim_report_completion(SysTime t, struct disksim_request *r, void *ctx) {
 void hddsim_report_completion(SysTime t, struct disksim_request *r, void *ctx) {
     completed--;
     now = t;
-    st.sysResponse += (t-r->start);
+    st.stime += (t-r->start);
     //Statistic
     st.servedIORequest++;
-    //printf("[HDDSIM]sysResponse = %lf, start = %lf, *responseTime = %lf, blkno = %lu\n", st.sysResponse, r->start, t-r->start, r->blkno);
+    //printf("[HDDSIM]systime = %lf, start = %lf, *responseTime = %lf, blkno = %lu\n", st.stime, r->start, t-r->start, r->blkno);
     //printf("Now = %lf\n", now);
     REQ *re;
     re = calloc(1, sizeof(REQ));
@@ -93,7 +93,7 @@ void exec_SSDsim(char *name, const char *parm_file, const char *output_file) {
     struct stat buf;
     IntqBufReq *pendReq;
 
-    st.sysResponse = 0;
+    st.stime = 0;
     st.pendIORequest = 0;
     st.servedIORequest = 0;
 
@@ -122,12 +122,12 @@ void exec_SSDsim(char *name, const char *parm_file, const char *output_file) {
 		if (rp->reqFlag == MSG_REQUEST_CONTROL_FLAG_FINISH) {
 			REQ *ctrl;
     		ctrl = calloc(1, sizeof(REQ));
-    		ctrl->responseTime = st.sysResponse;
+    		ctrl->responseTime = st.stime;
     		if(sendRequestByMSQ(KEY_MSQ_DISKSIM_1, ctrl, MSG_TYPE_DISKSIM_1_SERVED) == -1)
     		    PrintError(KEY_MSQ_DISKSIM_1, "A control request not sent to MSQ in sendRequestByMSQ() return:");
     		
     		disksim_interface_shutdown(disksim, now);
-            printf(COLOR_YB"[SSDSIM]SYSResponseTime:%lf, Pending IO Requests:%lu, Served IO Requests:%lu\n"COLOR_N, st.sysResponse, st.pendIORequest, st.servedIORequest);
+            printf(COLOR_YB"[SSDSIM]System Time:%lf, Pending IO Requests:%lu, Served IO Requests:%lu\n"COLOR_N, st.stime, st.pendIORequest, st.servedIORequest);
     		PrintSomething("<<<<<[SSDSIM] Shutdown!");
     		exit(0);
 		}
@@ -191,7 +191,7 @@ void exec_HDDsim(char *name, const char *parm_file, const char *output_file) {
     struct stat buf;
     IntqBufReq *pendReq;
 
-    st.sysResponse = 0;
+    st.stime = 0;
     st.pendIORequest = 0;
     st.servedIORequest = 0;
 
@@ -219,12 +219,12 @@ void exec_HDDsim(char *name, const char *parm_file, const char *output_file) {
 		if (rp->reqFlag == MSG_REQUEST_CONTROL_FLAG_FINISH) {
 			REQ *ctrl;
     		ctrl = calloc(1, sizeof(REQ));
-    		ctrl->responseTime = st.sysResponse;
+    		ctrl->responseTime = st.stime;
     		if(sendRequestByMSQ(KEY_MSQ_DISKSIM_2, ctrl, MSG_TYPE_DISKSIM_2_SERVED) == -1)
     		    PrintError(KEY_MSQ_DISKSIM_2, "A control request not sent to MSQ in sendRequestByMSQ() return:");
     		
     		disksim_interface_shutdown(disksim, now);
-            printf(COLOR_YB"[HDDSIM]SYSResponseTime:%lf, Pending IO Requests:%lu, Served IO Requests:%lu\n"COLOR_N, st.sysResponse, st.pendIORequest, st.servedIORequest);
+            printf(COLOR_YB"[HDDSIM]System Time:%lf, Pending IO Requests:%lu, Served IO Requests:%lu\n"COLOR_N, st.stime, st.pendIORequest, st.servedIORequest);
     		PrintSomething("<<<<<[HDDSIM] Shutdown!");
     		exit(0);
 		}

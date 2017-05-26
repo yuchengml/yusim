@@ -67,11 +67,18 @@ int main(int argc, char const *argv[]) {
     //    printf("Output file open error...\n");
     //    exit(1);
     //}
+    //
+    int i;
+    unsigned weight = 0;
+    for(i = 0; i < NUM_OF_USER; i++) {
+        fscanf(fin, "%u", &weight);
+        //userWeight[i] = weight;
+    }
     
 
     //traceFile2print(fin);
-    //traceFile2max(fin);
-    traceFile2blkno(fin);
+    traceFile2max(fin);
+    //traceFile2blkno(fin);
 
     fclose(fin);
     //fclose(fout);
