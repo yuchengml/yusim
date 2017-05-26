@@ -399,6 +399,5 @@ void pcStatistics() {
 	printf(COLOR_BB"[PRIZE] Total User Requests(R/W):     %lu(%lu/%lu)\n"COLOR_N, pcst.totalUserReq, pcst.UserRReq, pcst.totalUserReq-pcst.UserRReq);
 	printf(COLOR_BB"[PRIZE] Total System Requests:        %lu\n"COLOR_N, pcst.totalSysReq);
 	printf(COLOR_BB"[PRIZE] Count of Eviction(Dirty):     %lu(%lu)\n"COLOR_N, pcst.evictCount, pcst.dirtyCount);
-	printf(COLOR_BB"[PRIZE] Hit rate(Hit/Miss):           %lf(%lu/%lu)\n"COLOR_N, (double)pcst.hitCount/(double)(pcst.hitCount+pcst.missCount), pcst.hitCount, pcst.missCount);
-	
+	printf(COLOR_BB"[PRIZE] Hit rate(Hit/Miss):           %lf(%lu/%lu)\n"COLOR_N, (double)pcst.hitCount/(double)(pcst.hitCount+pcst.missCount), pcst.hitCount, pcst.missCount);	
 }
