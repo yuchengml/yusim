@@ -49,7 +49,7 @@ Author: Yu-Cheng Yu ([g1677321@gmail.com](mailto:g1677321@gmail.com))
 
 5.	_(Disksim-defined)_ **_[Request_Size]_** : An `unsigned integer` as the consecutive length. Due to address alignment for SSD, it must be a valid number.
 6.	_(Disksim-defined)_ **_[Request_Flag]_** : **'1'** assigned as "Read" request and **'0'** assigned as "Write" request.
-7.	_(Disksim-defined)_ **_[User_Number]_** :  An `unsigned integer` user number from '1' to 'N'.
+7.	***_[User_Number]_*** :  An `unsigned integer` user number from '1' to 'N'.
 
 # Get started
 ## 1. Download Disksim4.0 & Build it!
