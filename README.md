@@ -57,5 +57,5 @@ Author: Yu-Cheng Yu ([g1677321@gmail.com](mailto:g1677321@gmail.com))
 *	[Disksim4.0](http://www.pdl.cmu.edu/DiskSim/) with [SSD patch](https://www.microsoft.com/en-us/download/details.aspx?id=52332&from=http%3A%2F%2Fresearch.microsoft.com%2Fresearch%2Fdownloads%2Fdetails%2Fb41019e2-1d2b-44d8-b512-ba35ab814cd4%2Fdetails.aspx)
 
 ## 2. Clone Yusim
-## 3. Paste **/src** into source folder
+## 3. Paste ***/src*** into source folder
 *	Path:.../disksim/src
