@@ -14,7 +14,7 @@ Author: Yu-Cheng Yu ([g1677321@gmail.com](mailto:g1677321@gmail.com))
 *	Replaceable I/O request scheduler.
 *	Support multi-user requests and system-defined user weights.
 *	Block-level request delivery
-*	Various experiment data, e.g., Response time, Throughtput and Hit rate.
+*	Various experiment data, e.g., Response time, Throughtput, Hit rate and User info..
 
 ## Policy
 *	I/O Scheduler: **Credit-based scheduler**.
