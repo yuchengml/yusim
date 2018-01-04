@@ -21,4 +21,4 @@ void initMSQ();
 /*MESSAGE QUEUE REMOVE*/
 void rmMSQ();
 /*I/O SCHEDULING*/
-void scheduling(double next_timeout);
+void scheduling();
