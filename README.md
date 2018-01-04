@@ -22,18 +22,19 @@ Author: Yu-Cheng Yu ([g1677321@gmail.com](mailto:g1677321@gmail.com))
 *	SSD Caching Space: **Logical Partition**.
 
 # Repository contents
+##/src
 1.	**yu_parameter.h:** System-defined parameters. Modification should pass self-validation.
 2.	**yusim.c, .h:** Main interface.
 3.	**yu_syssim.c, .h:** Simulator's behaviors.
 4.	**yu_ipc.c, .h:** Use message queue in "Inter-Process Communication(IPC)".
 5.	**yu_structure.c, .h:** Define system structure, e.g., User queue.
-6.	**yu_cache.c, .h:** SSD cacahe management
-7.	**yu_prize.c, .h:** Prize management
-8.	**yu_credit.c, .h:** credit distribution
-9.	**yu_statistics.c, .h:** User Statistics
+6.	**yu_cache.c, .h:** SSD cacahe management.
+7.	**yu_prize.c, .h:** Prize management.
+8.	**yu_credit.c, .h:** Credit distribution.
+9.	**yu_statistics.c, .h:** User Statistics.
 10.	**yu_debug.c, .h:** -
-11.	**yu_trace.c, .h:** -
-12.	**Makefile:** Modified Disksim version
+11.	**Makefile:** Modified Disksim version.
+12. **yusim_batch.sh** Batch execution.
 
 # Trace Format
 >	**_[User_Weight_1] [User_Weight_2] [User_Weight_3] ..._**<br>
@@ -55,6 +56,6 @@ Author: Yu-Cheng Yu ([g1677321@gmail.com](mailto:g1677321@gmail.com))
 ## 1. Download Disksim4.0 & Build it!
 *	[Disksim4.0](http://www.pdl.cmu.edu/DiskSim/) with [SSD patch](https://www.microsoft.com/en-us/download/details.aspx?id=52332&from=http%3A%2F%2Fresearch.microsoft.com%2Fresearch%2Fdownloads%2Fdetails%2Fb41019e2-1d2b-44d8-b512-ba35ab814cd4%2Fdetails.aspx)
 
-## 2. Download Yusim
-## 3. Paste all files into source folder
+## 2. Clone Yusim
+## 3. Paste **/src** into source folder
 *	Path:.../disksim/src
