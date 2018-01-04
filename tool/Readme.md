@@ -1,8 +1,8 @@
 # Tools
-(a) yu_trace:		觀察Trace file資訊，根據程式內Function的使用需求
-(b) insertUserNum: 	新增使用者編號（提醒Yusim起始編號為1，與disksim相同）（預設前五個欄位為已知）
-(c) numbering: 		將blkno重新編號(可定義起始編號)
-(d) synthesizer:	將Workload合成（根據時間排序）（請注意！此程式不會驗證Input file的時間是否循序正確）
+1.	**yu_trace:** 觀察Trace file資訊，根據程式內Function的使用需求
+2.	**insertUserNum:** 新增使用者編號（提醒Yusim起始編號為1，與disksim相同）（預設前五個欄位為已知）
+3.	**numbering:** 將blkno重新編號(可定義起始編號)
+4.	**synthesizer:** 將Workload合成（根據時間排序）（請注意！此程式不會驗證Input file的時間是否循序正確）
 
 # Trace Format
 >	**_[User_Weight_1] [User_Weight_2] [User_Weight_3] ... [User_Weight_N]_**<br>
