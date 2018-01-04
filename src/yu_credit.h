@@ -2,6 +2,7 @@
 #define YU_CREDIT_H
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include "yu_parameter.h"
 #include "yu_structure.h"
 #include "yu_debug.h"
@@ -22,7 +23,7 @@
 	/*CREDIT COMPENSATION*/
 	double creditCompensate(unsigned userno, double value);
 	/*CREDIT-BASED SCHEDULER*/
-	int creditScheduler(USER_QUE user[]);
+	int creditScheduler(USER_QUE user[], double time);
 
 	/*印出所有user的credit*/
 	void printCredit();
