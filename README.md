@@ -22,7 +22,7 @@ Author: Yu-Cheng Yu ([g1677321@gmail.com](mailto:g1677321@gmail.com))
 *	SSD Caching Space: **Logical Partition**.
 
 # Repository contents
-##/src
+## /src
 1.	**yu_parameter.h:** System-defined parameters. Modification should pass self-validation.
 2.	**yusim.c, .h:** Main interface.
 3.	**yu_syssim.c, .h:** Simulator's behaviors.
