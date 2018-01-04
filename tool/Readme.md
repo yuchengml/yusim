@@ -9,7 +9,7 @@
 >	**_[Request_Arrival_Time] [Device_number] [Block_Number] [Request_Size] [Request_Flag(read:1;write:0)] [User_Number(1)]_**<br>
 >	**_[Request_Arrival_Time] [Device_number] [Block_Number] [Request_Size] [Request_Flag(read:1;write:0)] [User_Number(2)]_**<br>
 >	**_[Request_Arrival_Time] [Device_number] [Block_Number] [Request_Size] [Request_Flag(read:1;write:0)] [User_Number(3)]_**<br>
->	**_..._**
+>	**_..._**<br>
 >	**_[Request_Arrival_Time] [Device_number] [Block_Number] [Request_Size] [Request_Flag(read:1;write:0)] [User_Number(N)]_**<br>
 
 # Rules
