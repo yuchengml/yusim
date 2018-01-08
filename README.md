@@ -52,6 +52,8 @@ Author: Yu-Cheng Yu ([g1677321@gmail.com](mailto:g1677321@gmail.com))
 6.	_(Disksim-defined)_ **_[Request_Flag]_** : **'1'** assigned as "Read" request and **'0'** assigned as "Write" request.
 7.	***_[User_Number]_*** :  An `unsigned integer` user number from '1' to 'N'.
 
+* [Yusim trace download link](https://github.com/g1677321/yusim/releases/download/v1.0/trace.zip)
+
 # Get started
 ## 1. Download Disksim4.0 & Build it!
 *	[Disksim4.0](http://www.pdl.cmu.edu/DiskSim/) with [SSD patch](https://www.microsoft.com/en-us/download/details.aspx?id=52332&from=http%3A%2F%2Fresearch.microsoft.com%2Fresearch%2Fdownloads%2Fdetails%2Fb41019e2-1d2b-44d8-b512-ba35ab814cd4%2Fdetails.aspx)
